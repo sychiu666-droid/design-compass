@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>設計方向羅盤｜社會設計評估工具</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #2C3E50;
+      --accent: #3498DB;
+      --bg: #EEF2F7;
+      --card: #FFFFFF;
+      --border: #DDE3EA;
+      --text: #2C3E50;
+      --text-light: #7F8C8D;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', '微軟正黑體', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* ─── Screen Management ─── */
+    .screen { display: none; animation: fadeIn 0.3s ease; }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── Layout ─── */
+    .container { max-width: 780px; margin: 0 auto; padding: 24px 20px 60px; }
+
+    /* ─── Welcome Screen ─── */
+    .hero {
+      text-align: center;
+      padding: 56px 24px 40px;
+      background: linear-gradient(135deg, #2C3E50 0%, #3498DB 100%);
+      color: white;
+      border-radius: var(--radius);
+      margin-bottom: 28px;
+    }
+    .hero-icon { font-size: 52px; margin-bottom: 16px; }
+    .hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 10px; letter-spacing: 0.02em; }
+    .hero p { font-size: 15px; opacity: 0.88; max-width: 480px; margin: 0 auto; }
+
+    .info-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+    .info-card { background: var(--card); border-radius: var(--radius); padding: 18px 16px; text-align: center; box-shadow: var(--shadow); }
+    .info-card .num { font-size: 28px; font-weight: 700; color: var(--accent); }
+    .info-card .label { font-size: 13px; color: var(--text-light); margin-top: 4px; }
+
+    .form-card { background: var(--card); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); }
+    .form-card h2 { font-size: 17px; font-weight: 600; margin-bottom: 20px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 7px; color: var(--text); }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--text);
+      transition: border-color 0.2s;
+      background: #FAFBFC;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-group .hint { font-size: 12px; color: var(--text-light); margin-top: 5px; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 28px;
+      border-radius: 8px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; border: none; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--accent); color: white; width: 100%; }
+    .btn-primary:hover { background: #2980B9; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(52,152,219,0.35); }
+    .btn-secondary { background: #ECF0F1; color: var(--primary); }
+    .btn-secondary:hover { background: #DDE3EA; }
+    .btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+    .btn-outline:hover { background: var(--accent); color: white; }
+
+    /* ─── Quiz Screen ─── */
+    .quiz-header {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .quiz-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .quiz-meta .team-name { font-weight: 600; font-size: 15px; }
+    .quiz-meta .q-count { font-size: 13px; color: var(--text-light); }
+    .progress-bar { height: 6px; background: #DDE3EA; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #9B59B6); border-radius: 3px; transition: width 0.4s ease; }
+
+    .section-label {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-light); margin: 24px 0 12px;
+    }
+
+    .question-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .question-card.answered { border-left-color: var(--accent); }
+    .question-card.unanswered-flag { border-left-color: #E74C3C; }
+
+    .q-number { font-size: 11px; font-weight: 700; color: var(--text-light); letter-spacing: 0.06em; margin-bottom: 6px; }
+    .q-text { font-size: 15px; font-weight: 500; margin-bottom: 16px; line-height: 1.65; }
+
+    .scale-row { display: flex; gap: 6px; }
+    .scale-btn {
+      flex: 1; min-width: 0;
+      min-height: 56px;
+      padding: 8px 4px;
+      border-radius: 7px;
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 500;
+      background: #FAFBFC;
+      color: var(--text-light);
+      text-align: center;
+      transition: all 0.15s;
+      line-height: 1.3;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .scale-btn:hover { border-color: var(--accent); color: var(--accent); background: #EBF5FB; }
+    .scale-btn.selected { border-color: transparent; color: white; font-weight: 600; }
+    .scale-btn[data-val="1"].selected { background: #E74C3C; }
+    .scale-btn[data-val="2"].selected { background: #E67E22; }
+    .scale-btn[data-val="3"].selected { background: #F39C12; }
+    .scale-btn[data-val="4"].selected { background: #27AE60; }
+    .scale-btn[data-val="5"].selected { background: #2980B9; }
+
+    .scale-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--text-light); padding: 0 2px; }
+
+    .submit-area { margin-top: 28px; }
+    .unanswered-warning { background: #FEF0F0; border: 1px solid #FADBD8; border-radius: 8px; padding: 12px 16px; font-size: 14px; color: #C0392B; margin-bottom: 14px; display: none; }
+
+    /* ─── Results Screen ─── */
+    .results-hero {
+      text-align: center;
+      background: linear-gradient(135deg, #1A252F 0%, #2C3E50 100%);
+      color: white;
+      border-radius: var(--radius);
+      padding: 36px 24px;
+      margin-bottom: 24px;
+    }
+    .results-hero h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .results-hero .team-display { font-size: 14px; opacity: 0.75; }
+
+    .chart-card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .chart-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    .chart-wrapper { max-width: 420px; margin: 0 auto; }
+
+    .top-directions { margin-bottom: 24px; }
+    .top-directions h3 { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+
+    .direction-result-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+      border-left: 5px solid;
+      position: relative;
+      overflow: hidden;
+    }
+    .direction-result-card::before {
+      content: attr(data-rank);
+      position: absolute; top: 16px; right: 18px;
+      font-size: 40px; font-weight: 800; opacity: 0.07;
+    }
+
+    .dir-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .dir-icon { font-size: 26px; }
+    .dir-name-score { flex: 1; }
+    .dir-name { font-size: 17px; font-weight: 700; }
+    .dir-score-bar-wrap { margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+    .dir-score-bar { flex: 1; height: 6px; background: #DDE3EA; border-radius: 3px; overflow: hidden; }
+    .dir-score-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+    .dir-score-pct { font-size: 13px; font-weight: 700; }
+
+    .dir-desc { font-size: 14px; color: var(--text-light); margin-bottom: 12px; line-height: 1.6; }
+    .dir-suitable { font-size: 13px; margin-bottom: 10px; }
+    .dir-suitable strong { color: var(--text); }
+    .dir-examples { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    .tag {
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 500;
+      background: var(--bg); color: var(--text-light);
+      border: 1px solid var(--border);
+    }
+    .dir-next { font-size: 13px; padding: 10px 14px; border-radius: 8px; background: var(--bg); }
+    .dir-next strong { display: block; margin-bottom: 3px; }
+
+    .discussion-card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .discussion-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+    .discussion-item { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .discussion-item:last-child { border-bottom: none; }
+    .discussion-item::before { content: "💬 "; }
+
+    .all-scores { background: var(--card); border-radius: var(--radius); padding: 22px 24px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .all-scores h3 { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+    .score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .score-row .score-name { width: 80px; font-size: 13px; font-weight: 500; }
+    .score-row .score-bar { flex: 1; height: 8px; background: #DDE3EA; border-radius: 4px; overflow: hidden; }
+    .score-row .score-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+    .score-row .score-val { width: 36px; text-align: right; font-size: 13px; color: var(--text-light); }
+
+    .action-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 560px) {
+      .info-cards { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .container { padding: 12px 12px 60px; }
+      .hero { padding: 32px 16px 24px; }
+      .hero h1 { font-size: 22px; }
+      .hero-icon { font-size: 40px; }
+      .form-card { padding: 20px 16px; }
+      .question-card { padding: 16px 14px; }
+      .scale-btn { font-size: 11px; padding: 6px 2px; min-height: 52px; }
+      .scale-btn span { font-size: 9px; }
+      .btn { padding: 14px 20px; font-size: 15px; }
+      .direction-result-card { padding: 16px 14px; }
+      .action-btns { flex-direction: column; }
+      .action-btns .btn { width: 100%; }
+    }
+
+    @media print {
+      .btn, .action-btns { display: none !important; }
+      .screen { display: block !important; }
+      #screen-welcome, #screen-quiz { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     SCREEN 1: WELCOME
+════════════════════════════════════════════ -->
+<div id="screen-welcome" class="screen active">
+  <div class="container">
+
+    <div class="hero">
+      <div class="hero-icon">🧭</div>
+      <h1>設計方向羅盤</h1>
+      <p>透過36道問題，評估你們的社會問題最適合哪種設計介入策略，並找到行動的起點。</p>
+    </div>
+
+    <div class="info-cards">
+      <div class="info-card"><div class="num">36</div><div class="label">道評估題目</div></div>
+      <div class="info-card"><div class="num">9</div><div class="label">種設計方向</div></div>
+      <div class="info-card"><div class="num">~10</div><div class="label">分鐘完成</div></div>
+    </div>
+
+    <div class="form-card">
+      <h2>開始之前，請填寫基本資訊</h2>
+
+      <div class="form-group">
+        <label for="team-name">組別名稱 *</label>
+        <input type="text" id="team-name" placeholder="例：第3組、行星組…" />
+      </div>
+
+      <div class="form-group">
+        <label for="members">參與成員</label>
+        <input type="text" id="members" placeholder="例：王小明、李小美…" />
+      </div>
+
+      <div class="form-group">
+        <label for="issue-desc">你們正在關注的社會問題（一句話描述）</label>
+        <textarea id="issue-desc" placeholder="例：身障者在市區移動時面臨道路設施不友善的困境…"></textarea>
+        <div class="hint">填寫後，在回答問題時請以此為基礎進行討論和評估。</div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0">
+        <label style="margin-bottom:10px; display:block; font-size:13px; color:var(--text-light);">
+          ⚠️ 評估提醒：請根據你們的問題「實際需要什麼」來判斷，而不是「你們想做什麼」。盡量如實討論，才能找到最合適的方向。
+        </label>
+        <button class="btn btn-primary" onclick="startQuiz()">開始評估 →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     SCREEN 2: QUIZ
+════════════════════════════════════════════ -->
+<div id="screen-quiz" class="screen">
+  <div class="container">
+
+    <div class="quiz-header">
+      <div class="quiz-meta">
+        <span class="team-name" id="quiz-team-display"></span>
+        <span class="q-count" id="quiz-progress-text">已回答 0 / 36</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div id="issue-reminder" style="background:var(--card);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;box-shadow:var(--shadow);font-size:14px;display:none;">
+      <span style="font-weight:600;color:var(--accent);">你們的問題：</span>
+      <span id="issue-reminder-text"></span>
+    </div>
+
+    <div id="questions-container"></div>
+
+    <div class="submit-area">
+      <div class="unanswered-warning" id="unanswered-warning">
+        ⚠️ 還有 <span id="unanswered-count"></span> 題尚未作答，請全部回答後再送出。
+      </div>
+      <button class="btn btn-primary" onclick="submitQuiz()">查看評估結果 →</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     SCREEN 3: RESULTS
+════════════════════════════════════════════ -->
+<div id="screen-results" class="screen">
+  <div class="container">
+
+    <div class="results-hero">
+      <h2>🧭 你們的設計方向分析</h2>
+      <div class="team-display" id="results-team-display"></div>
+    </div>
+
+    <div class="chart-card">
+      <h3>📊 九個方向的適合度分佈</h3>
+      <div class="chart-wrapper">
+        <canvas id="radar-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="top-directions">
+      <h3>🏆 最適合的設計方向（前三名）</h3>
+      <div id="top-directions-container"></div>
+    </div>
+
+    <div class="all-scores">
+      <h3>📋 全部方向得分</h3>
+      <div id="all-scores-container"></div>
+    </div>
+
+    <div class="discussion-card">
+      <h3>💬 團隊討論引導</h3>
+      <div id="discussion-container"></div>
+    </div>
+
+    <div class="action-btns">
+      <button class="btn btn-outline" onclick="window.print()">🖨️ 列印結果</button>
+      <button class="btn btn-secondary" onclick="restartQuiz()">↩ 重新評估</button>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+// ════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════
+
+const DIRECTIONS = [
+  {
+    name: '商品設計', icon: '🔧', color: '#E74C3C', bgColor: '#FADBD8',
+    desc: '設計一個具體可用的物品或工具，直接改善受影響者的日常生活處境。',
+    suitable: '受影響者缺乏輔具、需要有形的解決媒介、問題可透過實體物件介入',
+    examples: ['生活輔具設計', '功能性器具改良', '可攜帶資訊工具', '視覺引導物件'],
+    next: '思考：誰是主要使用者？他們在什麼情境下使用這個東西？這個東西如何被製作出來？'
+  },
+  {
+    name: '服務設計', icon: '🤝', color: '#2980B9', bgColor: '#D6EAF8',
+    desc: '設計一套完整的服務體驗，讓受影響者透過參與和互動獲得實質支持。',
+    suitable: '問題需要人際陪伴、現有服務流程不友善、解決需要持續互動式介入',
+    examples: ['服務流程重設計', '陪伴與引導計畫', '體驗工作坊', '轉介與媒合機制'],
+    next: '思考：使用者旅程的關鍵接觸點在哪？誰來提供這個服務？如何確保服務品質？'
+  },
+  {
+    name: '教育推廣', icon: '📚', color: '#27AE60', bgColor: '#D5F5E3',
+    desc: '透過知識傳遞和意識提升，改變人們對問題的認識和日常行為。',
+    suitable: '問題源於誤解或資訊不足、需要改變大眾認知、教育介入可預防問題發生',
+    examples: ['懶人包與圖解說明', '教案與工作坊', '校園推廣活動', '互動說明展覽'],
+    next: '思考：目標受眾是誰？他們目前最大的誤解是什麼？用什麼方式傳達最有效？'
+  },
+  {
+    name: '媒體敘事', icon: '🎬', color: '#8E44AD', bgColor: '#E8DAEF',
+    desc: '透過說故事和創作內容，讓社會看見這個問題並引起情感共鳴。',
+    suitable: '問題被社會忽視、有值得被看見的人物故事、情感連結能推動理解與改變',
+    examples: ['紀錄片與影像', '漫畫與插圖創作', '社群媒體策劃', '聲音與文字敘事'],
+    next: '思考：誰的故事最值得被說出來？要傳達給哪些受眾？用哪個平台最能觸及他們？'
+  },
+  {
+    name: '政策倡議', icon: '📜', color: '#D35400', bgColor: '#FAE5D3',
+    desc: '針對不合理的制度或規則提出改革訴求，推動系統性的根本改變。',
+    suitable: '問題根源來自制度不公、規定傷害特定群體、需要法律或政策層面的改變',
+    examples: ['政策分析與建議書', '請願與連署行動', '游說與倡議溝通', '公民論壇'],
+    next: '思考：哪個具體規定需要改？改變的決策者是誰？如何讓他們願意聽見你們的聲音？'
+  },
+  {
+    name: '倡議活動', icon: '📣', color: '#C0392B', bgColor: '#FDEDEC',
+    desc: '透過集體行動和創意事件，讓議題獲得社會關注並引發公眾討論。',
+    suitable: '問題需要公眾關注、可以用創意方式呈現、需要集結動員能量引發對話',
+    examples: ['快閃裝置藝術', '社區快閃活動', '街頭劇場', '聯署與可見化行動'],
+    next: '思考：什麼樣的行動會讓人停下來關注？如何讓參與者也成為議題的傳播者？'
+  },
+  {
+    name: '空間改造', icon: '🏗️', color: '#16A085', bgColor: '#D1F2EB',
+    desc: '透過重新設計物理空間，直接改善問題發生的環境條件。',
+    suitable: '環境條件造成排除或不便、空間使用方式不友善、場域需要功能或氛圍重設計',
+    examples: ['空間規劃提案', '臨時性裝置與改造', '導覽與標示系統', '場域活化再利用'],
+    next: '思考：哪個具體空間需要改變？誰有權力批准改造？改造後誰來維護和管理？'
+  },
+  {
+    name: '系統建立', icon: '⚙️', color: '#D4AC0D', bgColor: '#FDEBD0',
+    desc: '建立可持續運作的機制、制度或平台，讓解決方案能在你們離開後延續。',
+    suitable: '需要長期陪伴、一次性活動效果有限、解決方案需要被傳承接手',
+    examples: ['社群組織建立', '資源媒合系統', '志工培訓制度化', '操作手冊與SOP'],
+    next: '思考：這個系統誰來維護？如何讓新人可以接手？需要哪些資源才能持續運作？'
+  },
+  {
+    name: '合作平台', icon: '🌐', color: '#1E8449', bgColor: '#D5F5E3',
+    desc: '連結不同的單位、資源和社群，形成協作網絡共同應對複雜的社會問題。',
+    suitable: '問題牽涉多方利害關係人、現有資源分散缺少整合、需要跨域協作才能推進',
+    examples: ['社群媒合平台', '資源地圖製作', '聯合倡議網絡', '跨組織工作坊'],
+    next: '思考：哪些單位已在做相關工作？你們可以如何扮演橋樑角色？如何維持合作關係？'
+  }
+];
+
+// 36 questions: 4 per direction (dir index 0-8)
+// Structure: { dir, text }
+const ALL_QUESTIONS = [
+  // 商品設計 (dir 0)
+  { dir: 0, text: '你們組別發現的社會問題，需要設計一個實用的東西去改善嗎？' },
+  { dir: 0, text: '這個問題是否可以透過一種物品來讓受影響者的生活更好？' },
+  { dir: 0, text: '如果能提供一個可攜帶、可使用、可展示的東西，是否會更有效？' },
+  { dir: 0, text: '受影響者是否在日常行動中缺少某種具體的工具或輔具，使他們的困難更難解決？' },
+  // 服務設計 (dir 1)
+  { dir: 1, text: '你們組別的問題能不能透過一個參與式的活動或服務流程來改善？' },
+  { dir: 1, text: '是否需要設計一個讓人「來參加」的服務，來建立互動與支持？' },
+  { dir: 1, text: '如果辦一場體驗活動，是否能讓這個問題的影響者獲得幫助？' },
+  { dir: 1, text: '這個問題是否需要透過「人與人之間持續互動的陪伴過程」才能真正獲得改善？' },
+  // 教育推廣 (dir 2)
+  { dir: 2, text: '這個問題是不是來自「不了解」或「誤解」？是否需要提升大家的認識？' },
+  { dir: 2, text: '如果能讓更多人理解這個問題，是否就能開始改變？' },
+  { dir: 2, text: '製作懶人包、說明卡、教案、闖關活動是否是適合的方式？' },
+  { dir: 2, text: '如果目標群體的認知和態度改變了，這個問題是否就能大幅改善？' },
+  // 媒體敘事 (dir 3)
+  { dir: 3, text: '你們是否發現這個問題背後有值得被看見的故事？' },
+  { dir: 3, text: '如果把這個議題變成影片、漫畫、故事，是否能喚起更多共鳴？' },
+  { dir: 3, text: '這個問題是否適合透過「說出來」、「紀錄下來」來改變社會觀感？' },
+  { dir: 3, text: '這個問題是否因為「沒有人說出來」或「被大眾誤解或忽視」而持續存在？' },
+  // 政策倡議 (dir 4)
+  { dir: 4, text: '你們是否認為這個問題的根本原因來自某種制度或規則不合理？' },
+  { dir: 4, text: '如果這個規則改了，是否就能根本解決問題？' },
+  { dir: 4, text: '你們願意針對制度提出修改建議或請願行動嗎？' },
+  { dir: 4, text: '現有的規定或政策是否對某些群體造成不公平的對待或結構性限制？' },
+  // 倡議活動 (dir 5)
+  { dir: 5, text: '這個問題是否可以透過集體行動或創意活動來引發注意與對話？' },
+  { dir: 5, text: '如果號召大家一起做一件事（貼標語、走遊行、演劇等），是否會有效？' },
+  { dir: 5, text: '你們想讓這個議題「變得可見」、成為校園或社區話題嗎？' },
+  { dir: 5, text: '這個問題是否需要製造「社會能見度」和「集體情緒動員」才能推動改變？' },
+  // 空間改造 (dir 6)
+  { dir: 6, text: '你們觀察到的問題是否和空間使用或環境條件有關？' },
+  { dir: 6, text: '如果能重新設計某個空間的用途或氛圍，是否能改善問題？' },
+  { dir: 6, text: '這個問題能否透過一個「被改造的場域」來實驗解方？' },
+  { dir: 6, text: '受影響者的日常環境（場所、設施、動線）是否需要調整或重新規劃？' },
+  // 系統建立 (dir 7)
+  { dir: 7, text: '這個問題是否需要一種「制度化、可持續」的解法？' },
+  { dir: 7, text: '建立一個可長期使用的平台、流程或制度，是否會比單次活動有效？' },
+  { dir: 7, text: '你們是否願意試著建立一個能被他人接手或延續的系統？' },
+  { dir: 7, text: '如果你們的行動在畢業後停止了，這個問題是否就會重新出現？' },
+  // 合作平台 (dir 8)
+  { dir: 8, text: '這個問題需要集結多方資源或單位來合作解決嗎？' },
+  { dir: 8, text: '你們是否可以成為橋樑，連結資源、社群與人？' },
+  { dir: 8, text: '這個行動是否適合發展成一個社群平台或聯合倡議？' },
+  { dir: 8, text: '這個問題是否已有不同單位各自在努力，但缺少整合與協調的橋樑？' }
+];
+
+// Interleaved display order: 4 rounds, each containing one from every direction
+// (avoids revealing direction clusters to prevent biased answering)
+const DISPLAY_ORDER = [
+  // Round 1
+  0, 4, 8, 12, 16, 20, 24, 28, 32,
+  // Round 2 (shuffled direction order)
+  33, 25, 29, 1,  21, 13, 5,  17, 9,
+  // Round 3
+  18, 10, 34, 22, 2,  26, 14, 6,  30,
+  // Round 4 (enhanced diagnostic questions)
+  15, 31, 23, 27, 7,  35, 11, 3,  19
+];
+
+const SCALE_LABELS = ['完全不符合', '較不符合', '部分符合', '大致符合', '非常符合'];
+const ROUND_TITLES = [
+  '第一輪：基本問題特徵評估',
+  '第二輪：解決方式適切性評估',
+  '第三輪：行動策略可行性評估',
+  '第四輪：問題根本需求診斷'
+];
+
+// State
+let answers = {};
+let teamName = '';
+let memberNames = '';
+let issueDesc = '';
+let radarChart = null;
+
+// ════════════════════════════════════════════
+// QUIZ INIT
+// ════════════════════════════════════════════
+
+function startQuiz() {
+  teamName = document.getElementById('team-name').value.trim();
+  if (!teamName) {
+    document.getElementById('team-name').focus();
+    document.getElementById('team-name').style.borderColor = '#E74C3C';
+    return;
+  }
+  memberNames = document.getElementById('members').value.trim();
+  issueDesc = document.getElementById('issue-desc').value.trim();
+
+  document.getElementById('quiz-team-display').textContent = teamName;
+
+  if (issueDesc) {
+    document.getElementById('issue-reminder').style.display = 'block';
+    document.getElementById('issue-reminder-text').textContent = issueDesc;
+  }
+
+  buildQuestions();
+  showScreen('screen-quiz');
+  window.scrollTo(0, 0);
+}
+
+function buildQuestions() {
+  const container = document.getElementById('questions-container');
+  container.innerHTML = '';
+  answers = {};
+
+  DISPLAY_ORDER.forEach((qIdx, displayPos) => {
+    const roundIndex = Math.floor(displayPos / 9);
+
+    // Add round heading
+    if (displayPos % 9 === 0) {
+      const label = document.createElement('div');
+      label.className = 'section-label';
+      label.textContent = ROUND_TITLES[roundIndex];
+      container.appendChild(label);
+    }
+
+    const q = ALL_QUESTIONS[qIdx];
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.id = `q-card-${qIdx}`;
+
+    const btnsHtml = [1,2,3,4,5].map(v =>
+      `<button class="scale-btn" data-val="${v}" onclick="setAnswer(${qIdx}, ${v}, this)">${v}<br><span style="font-size:10px">${SCALE_LABELS[v-1]}</span></button>`
+    ).join('');
+
+    card.innerHTML = `
+      <div class="q-number">第 ${displayPos + 1} 題 / 共 ${DISPLAY_ORDER.length} 題</div>
+      <div class="q-text">${q.text}</div>
+      <div class="scale-row">${btnsHtml}</div>
+      <div class="scale-labels"><span>← 不符合</span><span>非常符合 →</span></div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function setAnswer(qIdx, val, btn) {
+  answers[qIdx] = val;
+  const card = document.getElementById(`q-card-${qIdx}`);
+  card.classList.add('answered');
+  card.classList.remove('unanswered-flag');
+  card.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  updateProgress();
+}
+
+function updateProgress() {
+  const count = Object.keys(answers).length;
+  const total = DISPLAY_ORDER.length;
+  document.getElementById('quiz-progress-text').textContent = `已回答 ${count} / ${total}`;
+  document.getElementById('progress-fill').style.width = `${(count / total) * 100}%`;
+}
+
+function submitQuiz() {
+  const unanswered = DISPLAY_ORDER.filter(i => answers[i] === undefined);
+  if (unanswered.length > 0) {
+    document.getElementById('unanswered-warning').style.display = 'block';
+    document.getElementById('unanswered-count').textContent = unanswered.length;
+    // Highlight unanswered
+    DISPLAY_ORDER.forEach(i => {
+      const card = document.getElementById(`q-card-${i}`);
+      if (answers[i] === undefined) card.classList.add('unanswered-flag');
+    });
+    // Scroll to first unanswered
+    const first = document.getElementById(`q-card-${unanswered[0]}`);
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  buildResults();
+  showScreen('screen-results');
+  window.scrollTo(0, 0);
+}
+
+// ════════════════════════════════════════════
+// SCORING
+// ════════════════════════════════════════════
+
+function calcScores() {
+  const scores = Array(9).fill(0);
+  const counts = Array(9).fill(0);
+  ALL_QUESTIONS.forEach((q, idx) => {
+    if (answers[idx] !== undefined) {
+      scores[q.dir] += answers[idx];
+      counts[q.dir]++;
+    }
+  });
+  // Normalize to percentage (max 20 for 4 questions × 5)
+  return scores.map((s, i) => counts[i] > 0 ? Math.round((s / (counts[i] * 5)) * 100) : 0);
+}
+
+// ════════════════════════════════════════════
+// RESULTS
+// ════════════════════════════════════════════
+
+function buildResults() {
+  const scores = calcScores();
+  const ranked = scores.map((s, i) => ({ dir: i, score: s }))
+                       .sort((a, b) => b.score - a.score);
+
+  // Header
+  const teamDisplay = `${teamName}${memberNames ? ' · ' + memberNames : ''}`;
+  document.getElementById('results-team-display').textContent = teamDisplay;
+  if (issueDesc) {
+    document.getElementById('results-team-display').innerHTML =
+      `${teamDisplay}<br><span style="opacity:0.7;font-size:13px">問題：${issueDesc}</span>`;
+  }
+
+  // Radar Chart
+  if (radarChart) radarChart.destroy();
+  const ctx = document.getElementById('radar-chart').getContext('2d');
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: DIRECTIONS.map(d => d.icon + ' ' + d.name),
+      datasets: [{
+        label: '適合度 (%)',
+        data: scores,
+        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+        borderColor: 'rgba(52, 152, 219, 0.9)',
+        pointBackgroundColor: scores.map((s, i) =>
+          i === ranked[0].dir ? '#E74C3C' :
+          i === ranked[1].dir ? '#E67E22' :
+          i === ranked[2].dir ? '#F1C40F' : 'rgba(52,152,219,0.7)'
+        ),
+        pointRadius: 5,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        r: {
+          beginAtZero: true, max: 100,
+          ticks: { stepSize: 25, font: { size: 10 } },
+          pointLabels: { font: { size: 11 } }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${ctx.raw}%` }
+        }
+      }
+    }
+  });
+
+  // Top 3 Direction Cards
+  const topContainer = document.getElementById('top-directions-container');
+  topContainer.innerHTML = '';
+  const rankLabels = ['🥇 第一推薦', '🥈 第二推薦', '🥉 第三推薦'];
+  const rankBadgeColors = ['#E74C3C', '#E67E22', '#F1C40F'];
+
+  ranked.slice(0, 3).forEach((item, rank) => {
+    const d = DIRECTIONS[item.dir];
+    const card = document.createElement('div');
+    card.className = 'direction-result-card';
+    card.setAttribute('data-rank', rank + 1);
+    card.style.borderLeftColor = d.color;
+
+    const exampleTags = d.examples.map(e => `<span class="tag">${e}</span>`).join('');
+
+    card.innerHTML = `
+      <div style="margin-bottom:10px">
+        <span style="background:${rankBadgeColors[rank]};color:white;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;">${rankLabels[rank]}</span>
+      </div>
+      <div class="dir-header">
+        <div class="dir-icon">${d.icon}</div>
+        <div class="dir-name-score">
+          <div class="dir-name" style="color:${d.color}">${d.name}</div>
+          <div class="dir-score-bar-wrap">
+            <div class="dir-score-bar"><div class="dir-score-fill" style="width:0%;background:${d.color}" data-width="${item.score}"></div></div>
+            <div class="dir-score-pct" style="color:${d.color}">${item.score}%</div>
+          </div>
+        </div>
+      </div>
+      <div class="dir-desc">${d.desc}</div>
+      <div class="dir-suitable"><strong>適合的問題特徵：</strong>${d.suitable}</div>
+      <div class="dir-examples">${exampleTags}</div>
+      <div class="dir-next" style="background:${d.bgColor}"><strong>📌 下一步思考</strong>${d.next}</div>
+    `;
+    topContainer.appendChild(card);
+  });
+
+  // Check if top 2 are very close (within 8%)
+  if (ranked[0].score - ranked[1].score <= 8) {
+    const notice = document.createElement('div');
+    notice.style.cssText = 'background:#EBF5FB;border:1px solid #AED6F1;border-radius:8px;padding:12px 16px;font-size:14px;margin-bottom:14px;';
+    notice.innerHTML = `<strong>💡 提示：</strong>你們的前兩名分數相近（${ranked[0].score}% vs ${ranked[1].score}%），可以考慮結合「<strong>${DIRECTIONS[ranked[0].dir].name}</strong>」與「<strong>${DIRECTIONS[ranked[1].dir].name}</strong>」的策略，往往能創造更完整的介入。`;
+    topContainer.insertBefore(notice, topContainer.firstChild);
+  }
+
+  // All Scores Bar Chart
+  const allContainer = document.getElementById('all-scores-container');
+  allContainer.innerHTML = '';
+  [...ranked].forEach(item => {
+    const d = DIRECTIONS[item.dir];
+    const row = document.createElement('div');
+    row.className = 'score-row';
+    row.innerHTML = `
+      <div class="score-name">${d.icon} ${d.name}</div>
+      <div class="score-bar"><div class="score-bar-fill" style="width:0%;background:${d.color}" data-width="${item.score}"></div></div>
+      <div class="score-val">${item.score}%</div>
+    `;
+    allContainer.appendChild(row);
+  });
+
+  // Discussion prompts
+  const top1 = DIRECTIONS[ranked[0].dir];
+  const top2 = DIRECTIONS[ranked[1].dir];
+  const discussionContainer = document.getElementById('discussion-container');
+  discussionContainer.innerHTML = `
+    <div class="discussion-item">你們認為「${top1.name}」分數最高，是因為問題本身的性質，還是你們偏好這個方式？</div>
+    <div class="discussion-item">「${top1.name}」能解決問題的「根本原因」嗎？還是只能緩解症狀？</div>
+    <div class="discussion-item">如果把「${top1.name}」和「${top2.name}」結合，可能產生什麼樣的行動？</div>
+    <div class="discussion-item">你們有沒有能力和資源執行第一推薦的方向？若有困難，哪個方向更可行？</div>
+    <div class="discussion-item">這個評估結果有讓你們感到意外的地方嗎？是什麼原因造成那個方向的分數？</div>
+  `;
+
+  // Animate bars
+  setTimeout(() => {
+    document.querySelectorAll('[data-width]').forEach(el => {
+      el.style.width = el.dataset.width + '%';
+    });
+  }, 200);
+}
+
+// ════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function restartQuiz() {
+  answers = {};
+  if (radarChart) { radarChart.destroy(); radarChart = null; }
+  showScreen('screen-welcome');
+  window.scrollTo(0, 0);
+}
+</script>
+
+</body>
+</html>
