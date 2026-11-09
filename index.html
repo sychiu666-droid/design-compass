@@ -146,6 +146,89 @@ textarea { min-height: 84px; resize: vertical; }
 .teacher textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; min-height: 96px; }
 .msg { font-size: 14px; color: var(--warn); margin: 8px 0 0; min-height: 1.2em; }
 
+/* 抽情境卡（動畫改自 card-demo：只用 transform／opacity；.dc- 開頭避免與 .card 面板衝突）
+   .stage 舞台、.dcard 卡片、.dcard-inner 卡背→人物面翻轉、.face-inner 人物面→故事面翻轉
+   .is-flipped 已翻面、.show-story 看故事、.rarity-r/sr/ssr 稀有度、.glow 光暈、.light-sweep SSR 光線 */
+.world { font-size: 14px; }
+.world summary { font-size: 16px; font-weight: 700; cursor: pointer; min-height: 32px; }
+.world ul { margin: 8px 0 0 1.2em; }
+.world li { margin-bottom: 4px; }
+.world .hint { margin-top: 8px; }
+.stage { position: relative; width: min(80vw, 320px); aspect-ratio: 5 / 7; margin: 18px auto 14px; perspective: 1100px; isolation: isolate; }
+.glow { position: absolute; z-index: -2; inset: -25%; background-position: center; background-repeat: no-repeat; background-size: contain; opacity: 0; transform: scale(.72); pointer-events: none; }
+.stage.rarity-sr .glow { background-image: url("assets/cards/glow-sr.webp"); }
+.stage.rarity-ssr .glow { background-image: url("assets/cards/glow-ssr.webp"); }
+.stage.glow-on .glow { animation: glow-expand .85s ease-out forwards; }
+.dcard { width: 100%; height: 100%; position: relative; border: 0; padding: 0; background: transparent; cursor: pointer; perspective: 1100px; -webkit-tap-highlight-color: transparent; font: inherit; color: inherit; display: block; }
+.dcard:focus-visible, .pick:focus-visible, .btn:focus-visible, .opt:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.dcard-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .58s cubic-bezier(.2,.72,.2,1); }
+.dcard.is-flipped .dcard-inner { transform: rotateY(180deg); }
+.dcard-back, .dcard-front { position: absolute; inset: 0; overflow: hidden; border-radius: 15px; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.dcard-back { background: #07536b url("assets/cards/card-back.webp") center / cover no-repeat; box-shadow: 0 14px 30px #1f2d3a20; }
+.dcard-front { transform: rotateY(180deg); background: #fffdf8; box-shadow: 0 14px 30px #1f2d3a20; text-align: left; }
+.face-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .48s cubic-bezier(.2,.72,.2,1); }
+.dcard.show-story .face-inner { transform: rotateY(180deg); }
+.person-face, .story-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow-y: auto; }
+.person-face { padding: 9% 8% 8%; display: flex; flex-direction: column; gap: 6px; background: linear-gradient(160deg, #e5eee9, #f8f4eb 65%); }
+.person-face img.portrait { display: block; width: 100%; aspect-ratio: 5 / 4; object-fit: cover; border-radius: 10px; background: #e5dfd3; }
+.person-face .pname { font-size: 19px; font-weight: 700; line-height: 1.3; margin-top: 4px; }
+.person-face .pmeta { font-size: 13px; color: var(--muted); }
+.person-face .pdom { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin-top: auto; }
+.person-face .pdom img { width: 28px; height: 28px; }
+.person-face .fiction { font-size: 11px; color: var(--muted); }
+.person-face .tapnote { font-size: 12px; color: var(--accent); font-weight: 700; }
+.story-face { transform: rotateY(180deg); padding: 11% 9% 9%; display: flex; flex-direction: column; gap: 7px; background: #fffdf8; }
+.story-block { padding: 8px 10px; border-radius: 10px; background: #f1eee6; font-size: 13px; line-height: 1.55; }
+.story-block b { display: block; color: var(--accent); font-size: 13px; margin-bottom: 2px; }
+.story-block ol { margin-left: 1.2em; }
+.card-frame { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; z-index: 5; pointer-events: none; opacity: 0; }
+.dcard.revealed .card-frame { opacity: 1; }
+.sweep-clip { position: absolute; inset: 0; z-index: 6; overflow: hidden; border-radius: 15px; pointer-events: none; }
+.light-sweep { position: absolute; inset: -20% -60%; pointer-events: none; opacity: 0; transform: translateX(-75%) rotate(18deg); background: linear-gradient(90deg, transparent 38%, #fff8d966 49%, #ffffffb8 52%, transparent 64%); }
+.stage.ssr-sweep .light-sweep { animation: sweep .48s ease-out both; }
+.dcard.charging { animation: card-charge-shake .6s ease-in-out; }
+.drawstatus { min-height: 2.8em; text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+.dompick .pick { display: inline-flex; align-items: center; gap: 6px; }
+.dompick .pick img { width: 24px; height: 24px; }
+.issuelist .opt { align-items: flex-start; height: auto; line-height: 1.5; padding: 12px 14px; }
+.issuelist .opt .n { margin-top: 2px; }
+.issuelist .opt.custom { border-style: dashed; }
+.chk { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; font-weight: 400; margin: 0; cursor: pointer; }
+.chk:last-of-type { border-bottom: 0; }
+.chk input { flex: none; width: 24px; height: 24px; margin-top: 3px; padding: 0; accent-color: var(--accent); }
+.chk b { color: var(--accent); }
+.chk small { display: block; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.chk-note { font-size: 14px; color: var(--muted); margin-top: 8px; min-height: 1.4em; }
+.mycard { font-size: 15px; }
+.mycard summary { cursor: pointer; color: var(--accent); font-weight: 600; margin-top: 6px; min-height: 32px; }
+.mycard .sb { margin-top: 6px; font-size: 14px; }
+.mycard ol { margin-left: 1.2em; }
+@keyframes glow-expand { 0% { opacity: 0; transform: scale(.72); } 40% { opacity: .95; } 100% { opacity: .48; transform: scale(1.12); } }
+@keyframes card-charge-shake {
+  0%,100% { opacity: 1; transform: translateX(0) rotate(0) scale(1); }
+  15% { transform: translateX(-3px) rotate(-.7deg) scale(1.006); }
+  30% { transform: translateX(3px) rotate(.7deg) scale(1.012); }
+  45% { opacity: .78; transform: translateX(-2px) rotate(-.4deg) scale(1.008); }
+  60% { transform: translateX(2px) rotate(.4deg) scale(1.004); }
+  75% { transform: translateX(-1px) rotate(0) scale(1.002); }
+}
+@keyframes sweep { 0% { opacity: 0; transform: translateX(-75%) rotate(18deg); } 18% { opacity: .9; } 100% { opacity: 0; transform: translateX(75%) rotate(18deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .stage *, .stage *::before, .stage *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .18s !important; }
+  .dcard-inner, .face-inner { transform-style: flat; }
+  .dcard.is-flipped .dcard-inner, .dcard.show-story .face-inner { transform: none; }
+  .dcard-back { transition: opacity .18s ease; }
+  .dcard.is-flipped .dcard-back { opacity: 0; }
+  .dcard-front { transform: none; opacity: 0; transition: opacity .18s ease; }
+  .dcard.is-flipped .dcard-front { opacity: 1; }
+  .person-face, .story-face { backface-visibility: visible; }
+  .story-face { transform: none; opacity: 0; transition: opacity .18s ease; pointer-events: none; }
+  .dcard.show-story .person-face { opacity: 0; }
+  .dcard.show-story .story-face { opacity: 1; pointer-events: auto; }
+}
+
+button[hidden] { display: none !important; }
+.stage.instant .dcard-inner, .stage.instant .face-inner { transition: none !important; }
 @media print {
   .btn, .navrow, .toast, .noprint { display: none !important; }
   body { background: #fff; }
@@ -159,7 +242,7 @@ textarea { min-height: 84px; resize: vertical; }
 <div id="s-start" class="screen active"><div class="wrap">
   <img class="hero" src="assets/hero-compass.webp" width="960" height="480" alt="羅盤周圍環繞六個方向的圖示">
   <h1>設計方向羅盤</h1>
-  <p class="lead">情境是高齡者的共居生活。先把你們關注的問題說清楚，再回答 24 題，看看比較適合從哪個方向介入。約 10–15 分鐘，建議全組一起討論。</p>
+  <p class="lead">情境是高齡者的共居生活。先抽一張情境卡，選出你們要處理的社會問題，再回答 24 題，看看比較適合從哪個方向介入。約 10–15 分鐘，建議全組一起討論。</p>
 
   <div id="resume" class="card" style="display:none">
     <h2>找到上次未完成的進度</h2>
@@ -180,7 +263,7 @@ textarea { min-height: 84px; resize: vertical; }
       <input id="members" type="text" autocomplete="off" maxlength="40" placeholder="例：小明、小美">
       <div class="hint">會寫進繳交代碼，請填真實姓名或學號，老師才認得出是誰。</div>
     </div>
-    <button class="btn btn-primary" onclick="toProblem()">下一步：說明你們的問題</button>
+    <button class="btn btn-primary" onclick="toDraw()">下一步：抽情境卡</button>
   </div>
   <div class="card teacher">
     <h2>老師：用繳交代碼查看結果</h2>
@@ -191,43 +274,86 @@ textarea { min-height: 84px; resize: vertical; }
   <p class="foot">資料只存在這支手機的瀏覽器裡，不會上傳。作答完會產生一個 QR code 和一組備援代碼，請截圖交給老師。</p>
 </div></div>
 
-<!-- 1b. 說明問題 -->
-<div id="s-problem" class="screen"><div class="wrap">
-  <h1 style="font-size:22px">你們關注的共居問題</h1>
-  <p class="lead">情境：高齡者在共居住宅一起生活。先選範圍，寫下觀察，再整理成一句話。</p>
+<!-- 1b. 抽情境卡 -->
+<div id="s-draw" class="screen"><div class="wrap">
+  <h1 style="font-size:22px">抽一張情境卡</h1>
+  <p class="lead">先選一個領域，抽出一位住在園館裡的人。讀完他的故事，再決定你們要處理哪個社會問題。</p>
+
+  <details class="card world" open>
+    <summary>這間園館的設定（先看一下）</summary>
+    <ul>
+      <li>園館是一般住宅，不是機構：住戶可自由進出，每間房內建浴室。</li>
+      <li>房費相同；協助洗澡、陪同就醫等額外協助另外計費。</li>
+      <li>每層有公共廚房；不吃中央廚房餐點，可退餐費。</li>
+      <li>園方有接駁車到醫院，但陪同要預約管家；夜班只有兩位管家；管家有守則與績效紀錄。</li>
+      <li>住戶狀況改變時，由園方召開家庭會議。</li>
+    </ul>
+    <p class="hint">情境人物與規定皆為虛構。現實是否成立，由你們自己查證。</p>
+  </details>
 
   <div class="card">
-    <h2>1. 問題發生在哪個領域？</h2>
-    <div class="picks" id="p-dom"></div>
-    <div class="hint" id="p-dom-eg">選一個最接近的。</div>
-    <h2 style="margin-top:18px">2. 你們主要想支持誰？</h2>
+    <h2>1. 選一個領域</h2>
+    <div class="picks dompick" id="d-dom"></div>
+    <div class="hint" id="d-dom-eg">每個領域有 4 位人物，抽到哪一位看運氣。</div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="glow" aria-hidden="true"></div>
+    <button class="dcard" id="dcard" type="button" aria-pressed="false" aria-label="情境卡，尚未揭曉">
+      <span class="dcard-inner">
+        <span class="dcard-back" aria-hidden="true"></span>
+        <span class="dcard-front">
+          <span class="face-inner">
+            <span class="person-face" id="d-person"></span>
+            <span class="story-face" id="d-story"></span>
+          </span>
+          <img class="card-frame" id="d-frame" alt="" width="600" height="840">
+        </span>
+      </span>
+    </button>
+    <span class="sweep-clip" aria-hidden="true"><span class="light-sweep"></span></span>
+  </div>
+  <p class="drawstatus" id="d-status" role="status" aria-live="polite"></p>
+
+  <button class="btn btn-primary" id="d-draw" onclick="doDraw()">抽卡</button>
+  <button class="btn btn-quiet" id="d-skip" onclick="skipDraw()" hidden>跳過動畫</button>
+  <p class="hint" style="margin:8px 0 12px">共 3 次機會，最後一次抽到的卡就是你們的卡。稀有度只是好玩，和內容、成績都無關。</p>
+  <button class="btn btn-primary" id="d-next" onclick="toProblem()" style="display:none">用這張卡，下一步</button>
+  <button class="btn btn-quiet" onclick="show('s-start')">上一步</button>
+</div></div>
+
+<!-- 1c. 選社會問題＋四個社會性 -->
+<div id="s-problem" class="screen"><div class="wrap">
+  <h1 style="font-size:22px">你們要處理的社會問題</h1>
+  <div class="card mycard" id="p-card"></div>
+
+  <div class="card">
+    <h2>1. 選一個社會問題</h2>
+    <p class="hint" style="margin:-6px 0 10px">這些都是這張卡可以討論的問題，沒有哪個比較對。也可以自己寫。</p>
+    <div class="issuelist" id="p-list"></div>
+    <label for="p-issue" style="margin-top:14px">你們的那一句話（可直接用，也可改寫）</label>
+    <textarea id="p-issue" maxlength="60" oninput="onIssueInput()" placeholder="點上面的問題，這裡會帶入；或直接自己寫"></textarea>
+    <div class="hint"><span>建議補上場域與對象。標「待查證」的說法要自己去查。</span><span id="p-count" style="float:right;white-space:nowrap">0 / 60</span></div>
+    <p class="msg" id="p-msg"></p>
+  </div>
+
+  <div class="card">
+    <h2>2. 你們主要想支持誰？</h2>
     <div class="picks" id="p-sup"></div>
     <div class="hint">選一個。有人可能因此被犧牲或增加負擔，等一下討論時再談。</div>
   </div>
 
   <div class="card">
-    <h2>3. 你們看到了什麼？</h2>
-    <textarea id="p-obs" maxlength="200" placeholder="寫 2–3 行：誰、在什麼情況下、發生了什麼事"></textarea>
-    <div class="hint">請不要寫真實姓名、房號、病名，或其他能認出特定人的細節。</div>
-    <label style="margin-top:12px">這個觀察是從哪裡來的？</label>
-    <div class="picks" id="p-src"></div>
-  </div>
-
-  <div class="card">
-    <h2>4. 擠成一句話</h2>
-    <textarea id="p-issue" maxlength="60" oninput="pCount()" placeholder=""></textarea>
-    <div class="hint"><span id="p-pattern">句型參考：在【領域】，【主要支持對象】因為______，遇到______。</span><span id="p-count" style="float:right">0 / 60</span></div>
-    <p class="msg" id="p-msg"></p>
-    <label style="margin-top:6px">寫完後對照這四題。提醒用，不會擋你。</label>
-    <ul class="checks">
-      <li><b>說得出是誰嗎？</b>句子裡有具體的人，不是「大家」或「長輩」。</li>
-      <li><b>成因是安排嗎？</b>問題來自空間、規則或做法的安排，不只是某個人的個性或選擇。</li>
-      <li><b>換人還會發生嗎？</b>換另一個人住進來，同樣的事還會發生。</li>
-      <li><b>我們憑什麼知道？</b>上面選的來源撐得起這句話嗎？只是想像的話，句子別寫得太肯定。</li>
-    </ul>
-    <p class="notice" style="margin-top:12px">作答時請依「這個問題實際需要什麼」判斷，不是「我們想做什麼」。</p>
+    <h2>3. 這個問題算「社會問題」嗎？</h2>
+    <p class="hint" style="margin:-6px 0 4px">對照你們寫的那一句話，符合的打勾。提醒用，不打勾也能繼續。</p>
+    <label class="chk"><input type="checkbox" id="c0" onchange="onCheck()"><span><b>公共性</b><small>夠普遍，是「一群人的問題」，不只發生在一個人身上。</small></span></label>
+    <label class="chk"><input type="checkbox" id="c1" onchange="onCheck()"><span><b>結構性</b><small>背後是規定、制度，或難以改變的身分條件，不只是個人的個性或選擇。</small></span></label>
+    <label class="chk"><input type="checkbox" id="c2" onchange="onCheck()"><span><b>延續性</b><small>重複發生、難以改善，或長期被討論。</small></span></label>
+    <label class="chk"><input type="checkbox" id="c3" onchange="onCheck()"><span><b>爭議性</b><small>利益不同的雙方，或一方付出代價、另一方得利。</small></span></label>
+    <p class="chk-note" id="c-note"></p>
+    <p class="notice" style="margin-top:8px">作答時請依「這個問題實際需要什麼」判斷，不是「我們想做什麼」。</p>
     <button class="btn btn-primary" onclick="startQuiz()">開始作答</button>
-    <button class="btn btn-quiet" onclick="show('s-start')">上一步</button>
+    <button class="btn btn-quiet" onclick="backToDraw()">上一步</button>
   </div>
 </div></div>
 
@@ -374,11 +500,69 @@ const DOM_EG = ['動線、無障礙、公共空間、房間配置', '吃飯、�
 const SUPS = ['住戶本人', '家屬', '員工', '其他'];
 const SRCS = ['親眼看到', '訪談', '資料或新聞', '家人或自身經驗', '想像'];
 const BASE_URL = 'https://sychiu666-droid.github.io/design-compass/';
+const DOM_IMG = ['space', 'daily', 'people', 'care', 'family'];   // 對應 assets/cards/domain-*.webp
+const MAX_DRAWS = 3;                                              // 首抽 + 再抽 2 次，最後一張為定案
+const CHECKS = ['公共性', '結構性', '延續性', '爭議性'];             // 位元 0～3
+
+// 20 張情境卡。id 與順序凍結，只增不改（進度代碼存的是 id）。dom 是 DOMS 的編號。
+const CARDS = [
+  {"id":1,"name":"林阿嬤","age":78,"role":"住戶","dom":0,"story":"搬進全新的共居住宅，每間房內建浴室，是按高齡者需求設計的。她每天洗完澡，浴室出口總有一灘水。","trouble":"有一次差點滑倒。她沒告訴管家，自己拿毛巾擦。","clues":["同層六位住戶，四位超過七十五歲，洗完澡都會有水漬。","管家每天進房打掃，但洗澡時間由各人決定，不是每次都有人在。","園方考慮在浴室加跌倒感應器；有住戶說：「浴室裡裝東西，我不要。」"]},
+  {"id":2,"name":"陳爺爺","age":82,"role":"住戶","dom":0,"story":"退休木工，原本住四十坪的透天厝，裝滿用了一輩子的工具、書和家具。現在是單人房，他知道自己用不到大空間。","trouble":"他同意「斷捨離」，卻不知道這些東西要去哪裡。丟掉可惜，留下放不下。","clues":["同批搬進來的住戶，多數從大房子搬到小房間，物品要減到原本的一小部分。","孩子說：「爸，能丟就丟。」但他的工具，孩子都不會用。","附近的二手店和回收管道不收老工具與舊書；捐贈要自己聯絡。"]},
+  {"id":3,"name":"小宇","age":24,"role":"管家（年輕員工）","dom":0,"story":"園館是長輩居住的地方，年輕管家是少數的年輕人。長輩常說「你一來，大廳就熱鬧」。他喜歡這份工作，也被當成孫子。","trouble":"長輩下班後還傳訊息找他，他每次都回，沒有「下班」的界線。","clues":["同批五位年輕管家，三位一年內想轉職。","園方說：這份溫度是園館的特色，也是年輕人帶來活力的地方。","長輩沒有惡意，說：「你就像我孫子。」"]},
+  {"id":4,"name":"阿美","age":45,"role":"管家（夜班）","dom":0,"story":"夜裡兩位管家負責四十位住戶，輪流巡兩層樓。走廊轉角看不到，房內有事只能靠呼叫鈴。","trouble":"有住戶半夜跌倒沒按鈴，她隔天才知道。","clues":["夜班多一位管家，人事成本要反映在費用上。","夜班管家多為女性，薪資比日班稍高，但離職率高。","一部分住戶不想被半夜巡視打擾：「睡覺是我的自由。」"]},
+  {"id":5,"name":"王奶奶","age":80,"role":"住戶","dom":1,"story":"煮了五十年三餐，一身好廚藝。每層樓有公共廚房；不吃中央廚房的餐點，園方會退餐費。","trouble":"她去過公共廚房兩次，煮了一桌菜，沒人一起吃，之後就不去了。","clues":["公共廚房大部分時間沒人，因為多數住戶吃中央廚房的餐。","園方規定：做給別人吃的食物要注意食安，因為有人需要低鹽、軟食，曾有住戶吃了不適。","同層五位住戶以前也是家裡負責煮飯的人，大多是女性。"]},
+  {"id":6,"name":"張伯伯","age":75,"role":"住戶","dom":1,"story":"園館不是機構，住戶可自由進出。他想和老朋友去花蓮玩四天，搭火車，住民宿。","trouble":"管家和家屬都說「路上要小心」，接著問：誰陪、藥怎麼辦、出事怎麼辦。他覺得被當成需要看管的人。","clues":["張伯伯有高血壓，每天吃藥，行動自如。","兒子說：「你去可以，出事誰負責？」管家說：園館不能限制他，但也不清楚出遊期間的責任。","同層另有三位長輩想出遊，找不到適合的行程，一般旅遊行程對高齡者多半偏趕。"]},
+  {"id":7,"name":"小琪","age":22,"role":"管家（年輕員工）","dom":1,"story":"每天依工作安排表處理住戶的事。長輩喜歡找她聊天、陪看電視；男管家被叫去修燈泡、搬箱子。","trouble":"同樣八小時，她的工作多是陪伴和安撫，沒有「完成」的感覺，也沒有紀錄；男管家的工作有紀錄，容易被看見。","clues":["同棟五位年輕管家，被安排「陪聊、安撫」的四位是女生；「維修、搬運」的三位都是男生。","排班的人說：這是依長輩指定，不是刻意分配。","績效紀錄只計算有紀錄的事項。"]},
+  {"id":8,"name":"阮阿嬤","age":70,"role":"住戶","dom":1,"story":"三十多年前從越南嫁到臺灣，先生過世後搬進來，兒女在外縣市。她想每年回越南老家住兩個月，那裡還有姊妹。","trouble":"她離開的兩個月，房間要保留，房費照收。她也聽說出國太久可能影響補助與健保，但沒人能給她確定的答案。","clues":["同棟另有兩位外籍配偶長輩，也想回娘家養老。","園方說：房間保留期間管家的人力與設備成本不會減少，房費維持原價（可討論）。","子女說：「那邊醫療你不熟，出事怎麼辦，不如留在臺灣。」"]},
+  {"id":9,"name":"吳阿公","age":85,"role":"住戶","dom":2,"story":"園館每位住戶房費相同；需要額外協助的項目（協助洗澡、陪同就醫等）另外計費。他腿力退步，開始需要人協助洗澡。","trouble":"他算過，每週三次協助洗澡，一個月多出的費用佔他退休金一大塊。他決定「忍一忍，自己洗」。","clues":["同層有位住戶每天都用協助，費用較高，管家的時間也被占去較多。","管家人力固定，收費項目要預約，沒預約的人要等。","園方說：收費是為了公平，用多少付多少。也有住戶問：「用『付費分級』會不會更合理？」"]},
+  {"id":10,"name":"周伯伯","age":77,"role":"住戶","dom":2,"story":"園館每週辦十幾場活動：手作、歌唱、園藝、麻將。他是退休技師，說「這些都不是我的菜」，常一個人在房裡看報。","trouble":"他不是不想與人相處，只是沒找到想參加的活動。管家每次邀約他都回「不用」，久了就沒人問了。","clues":["同層八位男性住戶，只有一位固定參加活動。","活動由管家提議、住戶投票決定，投票時女性住戶人數較多。","管家想辦「男性專屬」或「技師俱樂部」，又怕被貼標籤，不知怎麼邀請才不勉強。"]},
+  {"id":11,"name":"小凱","age":26,"role":"管家（年輕員工）","dom":2,"story":"樓下的長輩把他當孫子，常煮東西給他，他也很喜歡。","trouble":"長輩煮的菜、送的水果和紅包越來越多。他不知道能不能收：收了怕被說偏心，不收又怕傷了長輩的心。","clues":["同棟所有管家都收過長輩的東西，有人收、有人婉拒，沒有一致的做法。","長輩說這是心意，「我們那個年代都是這樣」。另一位沒送禮的住戶問過：「你是不是比較照顧有送的人？」","管家守則寫「與住戶保持良好關係」，沒寫能不能收禮，也沒寫收到後怎麼處理。"]},
+  {"id":12,"name":"阿芳","age":38,"role":"管家（行政）","dom":2,"story":"有位原住民長者母語是阿美語，國語不太流利，看不懂住戶手冊和同意書。","trouble":"她被記錄為「不配合」，其實是聽不懂管家講的內容。","clues":["同棟有三位長者的第一語言不是國語或閩南語。","公告、同意書、活動通知全是國語，口頭偶爾翻閩南語。","園方說：每種語言都翻譯，成本太高，也找不到人。"]},
+  {"id":13,"name":"李奶奶","age":83,"role":"住戶","dom":3,"story":"年輕時家裡讓哥哥讀書，她沒上過學，不識字。每天吃七種藥，靠顏色和大小記，從不告訴管家。","trouble":"最近換了新藥，外觀跟舊的像，她吃錯過一次。","clues":["同層五位女性長者，兩位也不識字。","藥袋由醫院與藥局提供，只有文字，沒有圖示。","園方說：用藥由住戶自己負責，管家只能提醒，不能替他們服藥。"]},
+  {"id":14,"name":"郭伯伯","age":79,"role":"住戶","dom":3,"story":"中風後要持續復健，物理治療在醫院，每週兩次。","trouble":"需要人陪同往返，女兒請假越來越困難，有時就沒去。","clues":["郭伯伯有兒子和女兒，兒子在國外，陪同的是女兒。","園方有接駁車到醫院，但陪同要預約管家，一次約兩小時，每週兩次排不到。","同棟需定期回診的住戶約十位，大多靠家屬陪。"]},
+  {"id":15,"name":"洪爺爺","age":79,"role":"住戶","dom":3,"story":"和太太結婚五十多年，兩人一起搬進來，住在相鄰的房。太太最近失智加重，常走錯房間、半夜出門。","trouble":"園方召開家庭會議，建議評估太太搬到有二十四小時照護的地方。洪爺爺不想分開，也負擔不起兩邊的費用。","clues":["同棟有三對夫妻，一對已因一方需要照護而分開居住。","園館是一般住宅，不提供二十四小時專業照護；有二十四小時照護的地方月費約是這裡的兩倍，還要排隊。","兒子說：「爸，你也七十九了，不要再硬撐。」"]},
+  {"id":16,"name":"蔡爺爺","age":88,"role":"住戶","dom":3,"story":"沒有子女，太太已過世，朋友是他最親近的人。","trouble":"園方說可以填朋友為緊急聯絡人，但他聽說住院、手術時，醫院還是要「親屬」簽同意書，朋友簽不算。","clues":["同棟有七位長者沒有子女或沒有往來的親屬。","醫院說：沒有親屬簽名有法律風險。","有人建議找「代理人」，手續他不清楚，也沒人主動協助。"]},
+  {"id":17,"name":"小慧","age":50,"role":"家屬","dom":4,"story":"她是老二，上有哥哥，下有弟弟。母親住進園館，每月費用由她負擔。","trouble":"哥哥說他要養小孩，弟弟說剛買房，兩人都說「姊姊做得來」。","clues":["同棟住戶的家屬中，主要負責照顧和付費的，多數是女兒或媳婦。","母親名下有一棟老房子，以後由兒子們繼承。","親戚說：女兒照顧媽媽是應該的，不然就是不孝。"]},
+  {"id":18,"name":"志明","age":55,"role":"家屬","dom":4,"story":"他在南部工作，父親住北部的園館，他一個月才來一次。父親最近跌倒骨折，園方召開家庭會議。","trouble":"會議在平日下午，他請假不到，用視訊參加，聲音斷斷續續。結論是「以父親最佳利益為前提」，但父親全程沒說什麼話。","clues":["同棟約三成住戶的家屬在外縣市。","會議由園方主持，成員有管家、家屬，住戶本人有時出席；結論由園方整理後給家屬簽。","父親事後說：「他們說怎樣就怎樣啦。」"]},
+  {"id":19,"name":"林太太","age":76,"role":"住戶","dom":4,"story":"園館的費用要她自己負擔，兒子建議她賣掉老家支付。","trouble":"她捨不得，那是她覺得自己「還有地方可去」的依靠。","clues":["同棟住戶，有一半是靠賣房或租房收入支付費用。","兒子說：不賣，以後拿不出錢，反而更麻煩。","兄弟姊妹說：房子是爸媽的財產，不該只由一個人決定。"]},
+  {"id":20,"name":"阿宏","age":45,"role":"家屬","dom":4,"story":"父親七十八歲，母親過世三年。父親在園館認識同層的林阿姨（七十六歲），兩人常一起散步，最近說想「在一起」。","trouble":"阿宏看得出父親很開心，但親戚說「老人家交什麼女朋友」，姊姊擔心房子和財產以後有爭議。他夾在中間。","clues":["同棟有兩對這樣的長輩，沒有登記，只是互相陪伴。","園館沒有禁止，兩人各有房間，也可以去對方房間。","兩邊家屬都曾在家屬群組問：「這樣算什麼關係？」"]}
+];
+// 議題池 20 句。id 與順序凍結，只增不改。
+const ISSUES = [
+  {"id":"P01","text":"高齡者在日常生活中面對跌倒、用藥等風險，卻沒有人明確負責，常變成個人自己承擔。"},
+  {"id":"P02","text":"為了高齡者的安全而監測、看管或替他決定，會侵犯隱私與自主，安全與自主之間沒有共識的界線。"},
+  {"id":"P03","text":"照顧人力不足（特別是夜間或需要陪同時），使需要幫助的人得不到及時協助，工作者也難以長久留任。"},
+  {"id":"P04","text":"照顧被當成情感付出而不是勞動，工作者下班後仍被期待回應，工時與休息的界線模糊（工時如何適用，待查證）。"},
+  {"id":"P05","text":"照顧工作中的陪伴與情緒勞動多由女性承擔，職務依性別與指定被分派，付出不被計算或看見。"},
+  {"id":"P06","text":"家庭中的照顧責任常落在特定家人身上（多為女兒，或年老的配偶），缺少支持，也讓性別或婚姻身分決定了誰付出。"},
+  {"id":"P07","text":"照顧費用與資源的分攤方式，使需求大的人負擔更重，「依用量」與「依需求」之間的公平沒有共識。"},
+  {"id":"P08","text":"長輩的自主與子女對資產、繼承的期待之間，缺少好好溝通的場合，常演變成家庭衝突。"},
+  {"id":"P09","text":"高齡者本人在關於自己的決定中缺少發言，「為你好」由別人來定義，異地的家屬也很難真正參與。"},
+  {"id":"P10","text":"長輩退休或搬遷後，失去被需要的角色，專長與經驗缺少繼續發揮的位置。"},
+  {"id":"P11","text":"高齡者在群體生活中缺少與人連結的機會，活動依多數人設計，使少數人逐漸孤立。"},
+  {"id":"P12","text":"照護以個人為單位設計，夫妻有不同的照護需求時，常被迫分開（待查證）。"},
+  {"id":"P13","text":"不識字或母語非主流語言的長者，在以文字或國語為主的資訊與程序中處於劣勢，容易被誤認為不配合或出錯。"},
+  {"id":"P14","text":"高齡者縮小居住規模時，一輩子累積的物品難以取捨，丟棄可惜、留下放不下。"},
+  {"id":"P15","text":"長輩的夢想與心願（例如出遠門）常被「安全」擱置，交通、保險、責任歸屬等限制使實現變得高難度（保險限制待查證）。"},
+  {"id":"P16","text":"照顧關係中，禮物、情感與利益的界線不清，使被照顧者之間出現不公平的疑慮。"},
+  {"id":"P17","text":"社會對高齡者親密關係抱持「老了就不該有感情」的看法，加上財產繼承的顧慮，使長輩的選擇被質疑（繼承規定待查證）。"},
+  {"id":"P18","text":"老工具、舊書等有價值的舊物與技藝，缺少再利用與傳承的管道。"},
+  {"id":"P19","text":"移民長者想在母國與台灣之間生活，卻受補助、健保等跨國規則與家人擔心的限制（待查證）。"},
+  {"id":"P20","text":"醫療與照護的決定以親屬為單位，沒有親屬的高齡者缺少能代表自己的人（朋友簽名是否有效，待查證）。"}
+];
+// 卡片 id → 議題 id（1～2 個）
+const CARD_ISSUES = {"1":["P01","P02"],"2":["P14","P18"],"3":["P04","P03"],"4":["P03","P02"],"5":["P10","P11"],"6":["P15","P02"],"7":["P05","P04"],"8":["P19","P09"],"9":["P07","P03"],"10":["P11","P10"],"11":["P16","P04"],"12":["P13"],"13":["P13","P01"],"14":["P06","P03"],"15":["P12"],"16":["P20"],"17":["P06"],"18":["P09","P02"],"19":["P07","P08"],"20":["P17","P08"]};
+
 
 // ───────── 狀態 ─────────
-// dom／sup／src 是 DOMS／SUPS／SRCS 的編號，沒選為 -1
-let S = { team: '', members: '', issue: '', dom: -1, sup: -1, src: -1, obs: '', answers: {}, pos: 0 };
-let P = { dom: -1, sup: -1, src: -1 };
+// dom／sup／src 是 DOMS／SUPS／SRCS 的編號，沒選為 -1。
+// draws：每次抽到的 [{id, r}]；cardId：定案的卡（最後一張，0 = 沒有）；
+// issueId：-1 沒選、0 自己寫、1～20 = ISSUES 的編號；checks：四個社會性的位元遮罩。
+// obs、src 在 v3 不再收集，欄位保留是為了讀舊代碼。
+const EMPTY = () => ({ team: '', members: '', issue: '', dom: -1, sup: -1, src: -1, obs: '', answers: {}, pos: 0,
+                       draws: [], cardId: 0, issueId: -1, checks: 0 });
+let S = EMPTY();
+let P = { ddom: -1 };   // 抽卡前選的領域（不存檔）
 
 const $ = id => document.getElementById(id);
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -391,53 +575,219 @@ function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 1800);
 }
+const pad = n => String(n).padStart(2, '0');
 
 // 儲存：localStorage 可能被禁用，一律 try/catch
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
-function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
+function load() {
+  try { const v = JSON.parse(localStorage.getItem(KEY)); return v ? Object.assign(EMPTY(), v) : null; } catch (e) { return null; }
+}
 function clearSaved() { try { localStorage.removeItem(KEY); } catch (e) {} }
 
 function init() {
   const saved = load();
-  if (saved && saved.team && saved.answers && Object.keys(saved.answers).length > 0) {
+  if (!saved || !saved.team) return;
+  const n = Object.keys(saved.answers || {}).length;
+  if (n > 0 || saved.draws.length > 0) {
     $('resume').style.display = 'block';
-    $('resume-info').textContent = `${saved.team}，已回答 ${Object.keys(saved.answers).length} / ${QS.length} 題`;
+    $('resume-info').textContent = n > 0 ? `${saved.team}，已回答 ${n} / ${QS.length} 題` : `${saved.team}，已抽到情境卡，還沒開始作答`;
   }
 }
 function discardSaved() { clearSaved(); $('resume').style.display = 'none'; }
 function resumeQuiz() {
-  S = load();
-  if (Object.keys(S.answers).length >= QS.length) { showResults(null); return; }
-  enterQuiz();
+  S = load() || EMPTY();
+  const n = Object.keys(S.answers).length;
+  if (n >= QS.length) { showResults(null); return; }
+  if (n > 0) { enterQuiz(); return; }
+  $('team').value = S.team; $('members').value = S.members;
+  enterDraw();
 }
 
-function toProblem() {
+function toDraw() {
   const team = $('team').value.trim();
   if (!team) { $('team').classList.add('err'); $('team-msg').textContent = '請先填組別（寫組名就可以）。'; $('team').focus(); return; }
-  show('s-problem');
+  S.team = team; S.members = $('members').value.trim();
+  save();
+  enterDraw();
 }
 
-function renderPicks(id, list, key) {
-  $(id).innerHTML = list.map((t, i) =>
-    `<button type="button" class="pick${P[key] === i ? ' sel' : ''}" onclick="pick('${key}',${i})">${esc(t)}</button>`).join('');
+// ───────── 抽情境卡 ─────────
+// 流程：選領域 → 抽卡（0.6 秒蓄光 → 依稀有度揭曉，總長 ≤ 2 秒）→ 點卡片看故事。
+// 抽到的結果先存檔再播動畫，重新整理不會重抽。稀有度只是視覺，不影響內容與成績。
+let busy = false, revealed = false, showingStory = false, pendingR = null, timers = [];
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+function rollRarity() { const n = Math.random(); return n < 0.40 ? 'R' : n < 0.75 ? 'SR' : 'SSR'; }
+
+function renderDomPicks() {
+  $('d-dom').innerHTML = DOMS.map((t, i) =>
+    `<button type="button" class="pick${P.ddom === i ? ' sel' : ''}" onclick="pickDom(${i})"><img src="assets/cards/domain-${DOM_IMG[i]}.webp" width="24" height="24" alt="" loading="lazy">${esc(t)}</button>`).join('');
+  $('d-dom-eg').textContent = P.ddom >= 0 ? DOMS[P.ddom] + '：' + DOM_EG[P.ddom] : '每個領域有 4 位人物，抽到哪一位看運氣。';
 }
-function pick(key, i) {
-  P[key] = P[key] === i ? -1 : i;
-  renderPicks('p-' + key, key === 'dom' ? DOMS : key === 'sup' ? SUPS : SRCS, key);
-  $('p-' + key).classList.remove('err');
-  $('p-dom-eg').textContent = P.dom >= 0 ? DOMS[P.dom] + '：' + DOM_EG[P.dom] : '選一個最接近的。';
-  $('p-pattern').textContent = '句型參考：在' + (P.dom >= 0 ? DOMS[P.dom] : '【領域】') + '，' + (P.sup >= 0 ? SUPS[P.sup] : '【主要支持對象】') + '因為______，遇到______。';
+function pickDom(i) {
+  if (busy) return;
+  P.ddom = P.ddom === i ? -1 : i;
+  renderDomPicks();
 }
+
+function resetStage() {
+  clearTimers();
+  busy = false; revealed = false; showingStory = false; pendingR = null;
+  const dc = $('dcard');
+  dc.className = 'dcard';
+  $('stage').className = 'stage';
+  $('d-frame').removeAttribute('src');
+  dc.setAttribute('aria-pressed', 'false');
+  dc.setAttribute('aria-label', '情境卡，尚未揭曉');
+  $('d-person').innerHTML = ''; $('d-story').innerHTML = '';
+  $('d-skip').hidden = true;
+}
+function fillCard(c) {
+  $('d-person').innerHTML =
+    `<img class="portrait" src="assets/cards/char-${pad(c.id)}.webp" width="1200" height="960" alt="${esc(c.name)}的插圖">` +
+    `<div class="pname">${esc(c.name)}</div><div class="pmeta">${c.age} 歲｜${esc(c.role)}</div>` +
+    `<div class="pdom"><img src="assets/cards/domain-${DOM_IMG[c.dom]}.webp" width="28" height="28" alt="">${esc(DOMS[c.dom])}</div>` +
+    `<div class="fiction">情境人物與規定皆為虛構</div><div class="tapnote">點一下卡片，看他的故事</div>`;
+  $('d-story').innerHTML =
+    `<div class="story-block"><b>故事</b>${esc(c.story)}</div>` +
+    `<div class="story-block"><b>困擾</b>${esc(c.trouble)}</div>` +
+    `<div class="story-block"><b>線索</b><ol>${c.clues.map(x => '<li>' + esc(x) + '</li>').join('')}</ol></div>`;
+}
+function updateDrawUI() {
+  const used = S.draws.length, left = MAX_DRAWS - used;
+  $('d-draw').textContent = used === 0 ? `抽卡（共 ${MAX_DRAWS} 次機會）` : left > 0 ? `再抽一次（剩 ${left} 次）` : `已用完 ${MAX_DRAWS} 次`;
+  $('d-draw').disabled = busy || left <= 0;
+  $('d-next').style.display = used > 0 && !busy ? '' : 'none';
+}
+function enterDraw() {
+  resetStage();
+  if (S.draws.length) {
+    const last = S.draws[S.draws.length - 1], c = CARDS[last.id - 1];
+    P.ddom = c.dom;
+    fillCard(c);
+    const st = $('stage'); st.classList.add('instant');
+    applyRevealed(last.r);
+    requestAnimationFrame(() => requestAnimationFrame(() => st.classList.remove('instant')));
+    $('d-status').textContent = statusText(last.r);
+  } else {
+    $('d-status').textContent = '先選一個領域，再按「抽卡」。';
+  }
+  renderDomPicks();
+  updateDrawUI();
+  show('s-draw');
+}
+function statusText(r) {
+  return r + ' 卡片已揭曉！點卡片看故事。' + (S.draws.length >= MAX_DRAWS ? '這是你們的最後一張。' : '不滿意可以再抽，最後一張為定案。');
+}
+function applyRevealed(r) {
+  const rl = r.toLowerCase(), dc = $('dcard'), st = $('stage');
+  revealed = true;
+  st.classList.add('rarity-' + rl);
+  if (r !== 'R' && !reduced.matches) st.classList.add('glow-on');
+  dc.classList.add('is-flipped', 'revealed', 'rarity-' + rl);
+  $('d-frame').src = 'assets/cards/frame-' + rl + '.png';
+  dc.setAttribute('aria-pressed', 'true');
+  dc.setAttribute('aria-label', r + ' 情境卡。按 Enter 或空白鍵切換人物面與故事面');
+}
+function doDraw() {
+  if (busy || S.draws.length >= MAX_DRAWS) return;
+  if (P.ddom < 0) { $('d-status').textContent = '請先選一個領域。'; return; }
+  const used = S.draws.map(d => d.id);
+  let pool = CARDS.filter(c => c.dom === P.ddom && !used.includes(c.id));
+  if (!pool.length) pool = CARDS.filter(c => !used.includes(c.id));
+  const c = pool[Math.floor(Math.random() * pool.length)], r = rollRarity();
+  // 換卡就清掉上一張卡選的問題與打勾
+  S.draws.push({ id: c.id, r }); S.cardId = c.id; S.dom = c.dom;
+  S.issueId = -1; S.issue = ''; S.checks = 0;
+  save();
+  resetStage(); fillCard(c);
+  busy = true; pendingR = r;
+  $('d-skip').hidden = false;
+  $('d-status').textContent = '卡片正在回應你的抽取……';
+  updateDrawUI();
+  const rl = r.toLowerCase();
+  if (reduced.matches) { $('stage').classList.add('rarity-' + rl); later(() => reveal(r), 600); return; }
+  $('dcard').classList.add('charging');
+  if (r !== 'R') $('stage').classList.add('rarity-' + rl, 'glow-on');
+  later(() => reveal(r), 620);
+}
+function reveal(r) {
+  if (revealed) return;
+  clearTimers();
+  busy = false; pendingR = null;
+  $('dcard').classList.remove('charging');
+  applyRevealed(r);
+  $('d-skip').hidden = true;
+  $('d-status').textContent = statusText(r);
+  updateDrawUI();
+  if (r === 'SSR' && !reduced.matches) later(() => $('stage').classList.add('ssr-sweep'), 600);
+}
+function skipDraw() { if (busy && pendingR) reveal(pendingR); }
+function toggleStory() {
+  if (!revealed) return;
+  showingStory = !showingStory;
+  $('dcard').classList.toggle('show-story', showingStory);
+}
+$('dcard').addEventListener('click', toggleStory);
+$('dcard').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStory(); } });
+
+// ───────── 選社會問題＋四個社會性 ─────────
+function toProblem() { if (S.cardId > 0 && !busy) enterProblem(); }
+function backToDraw() { enterDraw(); }
+function enterProblem() {
+  const c = CARDS[S.cardId - 1];
+  $('p-card').innerHTML =
+    `<b>你們抽到：${esc(c.name)}，${c.age} 歲｜${esc(c.role)}</b>` +
+    `<details><summary>再看一次這張卡的故事</summary><div class="sb"><p><b>故事</b>${esc(c.story)}</p><p><b>困擾</b>${esc(c.trouble)}</p><p><b>線索</b></p><ol>${c.clues.map(x => '<li>' + esc(x) + '</li>').join('')}</ol></div></details>`;
+  renderIssueList();
+  $('p-issue').value = S.issue;
+  pCount();
+  renderSup();
+  CHECKS.forEach((_, i) => { $('c' + i).checked = !!(S.checks & (1 << i)); });
+  onCheck(true);
+  $('p-msg').textContent = '';
+  show('s-problem');
+}
+function renderIssueList() {
+  const ids = CARD_ISSUES[S.cardId] || [];
+  $('p-list').innerHTML = ids.map((pid, k) => {
+    const n = +pid.slice(1);
+    return `<button type="button" class="opt${S.issueId === n ? ' sel' : ''}" onclick="pickIssue(${n})"><span class="n">${k + 1}</span><span>${esc(ISSUES[n - 1].text)}</span></button>`;
+  }).join('') +
+  `<button type="button" class="opt custom${S.issueId === 0 ? ' sel' : ''}" onclick="pickIssue(0)"><span class="n">✎</span><span>自己寫一個</span></button>`;
+}
+function pickIssue(n) {
+  const ta = $('p-issue');
+  if (n > 0) ta.value = ISSUES[n - 1].text;
+  else if (ISSUES.some(x => x.text === ta.value.trim())) ta.value = '';   // 從題庫換成自己寫：清掉帶入的那句
+  S.issueId = n; S.issue = ta.value;
+  save(); renderIssueList(); pCount();
+  if (n === 0) ta.focus();
+}
+function onIssueInput() { S.issue = $('p-issue').value; save(); pCount(); }
 function pCount() {
   $('p-count').textContent = Array.from($('p-issue').value).length + ' / 60';
   $('p-msg').textContent = '';
 }
+function renderSup() {
+  $('p-sup').innerHTML = SUPS.map((t, i) =>
+    `<button type="button" class="pick${S.sup === i ? ' sel' : ''}" onclick="pickSup(${i})">${esc(t)}</button>`).join('');
+}
+function pickSup(i) { S.sup = S.sup === i ? -1 : i; save(); renderSup(); }
+function onCheck(noSave) {
+  let m = 0; const miss = [];
+  CHECKS.forEach((t, i) => { if ($('c' + i).checked) m |= 1 << i; else miss.push(t); });
+  S.checks = m;
+  if (noSave !== true) save();
+  $('c-note').textContent = miss.length === 0 ? '四項都打勾了。' : `還有 ${miss.length} 項沒打勾（${miss.join('、')}）。提醒用，仍可繼續。`;
+}
 
 function startQuiz() {
   const issue = clip($('p-issue').value.trim(), 60);
-  if (!issue) { $('p-msg').textContent = '請先寫下一句話。'; $('p-issue').focus(); return; }
-  S = { team: $('team').value.trim(), members: $('members').value.trim(), issue,
-        dom: P.dom, sup: P.sup, src: P.src, obs: $('p-obs').value.trim(), answers: {}, pos: 0 };
+  if (!issue) { $('p-msg').textContent = '請先選一個問題，或自己寫一句話。'; $('p-issue').focus(); return; }
+  if (S.issueId < 0) S.issueId = 0;
+  S.issue = issue; S.src = -1; S.obs = ''; S.answers = {}; S.pos = 0;
   save();
   enterQuiz();
 }
@@ -496,14 +846,16 @@ function nextQ(auto) {
 
 // ───────── 計分 ─────────
 // 每方向 4 題，每題 1–5 分（反向題用 6 減），換算成 0–100：(總分−4)/16
-// 版本：代碼裡記錄問卷版本。日後改題目或方向時，不要動 v1，
-// 新增 v2（連同 DIRS／QS 一起另存一份），並把 CUR_VER 改成 2，舊代碼才不會算錯。
+// 版本：代碼裡記錄問卷版本。日後改題目或方向時，不要動舊版，
+// 新增一版（連同 DIRS／QS 一起另存一份），並把 CUR_VER 往上加，舊代碼才不會算錯。
 // v1 的題目對應（方向、是否反向），順序與 QS 相同，已凍結。
 // v2：題目與 v1 相同，代碼多了領域、主要支持對象、依據來源和一句話。
-const CUR_VER = 2;
+// v3：題目與 v1 相同，代碼多了情境卡編號、議題編號、四個社會性打勾。
+const CUR_VER = 3;
 const VERSIONS = {
   1: { meta: QS.map(q => ({ d: q.d, rev: !!q.rev })) },
-  2: { meta: QS.map(q => ({ d: q.d, rev: !!q.rev })) }
+  2: { meta: QS.map(q => ({ d: q.d, rev: !!q.rev })) },
+  3: { meta: QS.map(q => ({ d: q.d, rev: !!q.rev })) }
 };
 
 function scores(ans, ver) {
@@ -557,7 +909,7 @@ function radarSVG(sc) {
 // R = { team, members, issue, answers, ver }；viewOnly = 老師用代碼查看，不寫入本機存檔
 let CUR = null;
 function showResults(R, viewOnly) {
-  R = R || { team: S.team, members: S.members, issue: S.issue, dom: S.dom, sup: S.sup, src: S.src, answers: S.answers, ver: CUR_VER };
+  R = R || { team: S.team, members: S.members, issue: S.issue, dom: S.dom, sup: S.sup, src: S.src, cardId: S.cardId, issueId: Math.max(S.issueId, 0), checks: S.checks, answers: S.answers, ver: CUR_VER };
   CUR = R;
   if (!viewOnly) save();
   const sc = scores(R.answers, R.ver);
@@ -567,7 +919,9 @@ function showResults(R, viewOnly) {
   $('r-meta').innerHTML = (viewOnly ? '<span class="viewtag">老師查看（代碼還原）</span><br>' : '') +
     esc(R.team) + (R.members ? '　' + esc(R.members) : '') +
     (R.issue ? '<br>問題：' + esc(R.issue) : '') +
-    (tagLine(R) ? '<br>' + esc(tagLine(R)) : '');
+    (tagLine(R) ? '<br>' + esc(tagLine(R)) : '') +
+    (cardLine(R) ? '<br>' + esc(cardLine(R)) : '') +
+    (checksLine(R) ? '<br>' + esc(checksLine(R)) : '');
   const code = makeCode(R);
   $('r-code').textContent = code;
   $('r-codever').textContent = '問卷版本 ' + R.ver;
@@ -624,17 +978,25 @@ function resultText() {
   const R = CUR;
   const sc = scores(R.answers, R.ver);
   const rk = sc.map((s, i) => ({ i, s })).sort((a, b) => b.s - a.s);
-  return [
+  const head = [
     `設計方向羅盤｜${R.team}${R.members ? '（' + R.members + '）' : ''}`,
+    cardLine(R),
     R.issue ? `問題：${R.issue}` : '',
     tagLine(R),
-    '',
-    ...rk.map((x, r) => `${r + 1}. ${DIRS[x.i].name} ${x.s}%`),
-    '',
-    `繳交代碼：${makeCode(R)}`
-  ].filter((l, i) => l !== '' || i === 3 || i === 10).join('\n');
+    checksLine(R)
+  ].filter(Boolean);
+  return [...head, '', ...rk.map((x, r) => `${r + 1}. ${DIRS[x.i].name} ${x.s}%`), '', `繳交代碼：${makeCode(R)}`].join('\n');
 }
 
+function cardLine(R) {
+  const c = R.cardId > 0 && CARDS[R.cardId - 1];
+  return c ? `情境卡：${c.name}（${c.age} 歲｜${c.role}）` : '';
+}
+function checksLine(R) {
+  if (R.ver < 3) return '';
+  const on = CHECKS.filter((_, i) => R.checks & (1 << i));
+  return `社會性自評：${on.length ? on.join('、') : '都沒打勾'}（${on.length}／4）`;
+}
 function tagLine(R) {
   const t = [];
   if (R.dom >= 0 && DOMS[R.dom]) t.push('領域：' + DOMS[R.dom]);
@@ -706,7 +1068,14 @@ function makeCode(R) {
   if (R.ver >= 2) {
     const f = x => (x >= 0 && x < 7 ? x : 7);
     const p = (f(R.dom) << 6) | (f(R.sup) << 3) | f(R.src);
-    body = [R.ver, ...ab, p >> 8, p & 255, ...u16(R.team, 20), ...u16(R.members, 40), ...u16(R.issue, 60)];
+    if (R.ver >= 3) {
+      const iid = R.issueId > 0 ? R.issueId : 0;
+      const stock = iid > 0 && ISSUES[iid - 1] && R.issue === ISSUES[iid - 1].text;
+      body = [R.ver, ...ab, p >> 8, p & 255, R.cardId & 255, iid, R.checks & 15,
+              ...u16(R.team, 20), ...u16(R.members, 40), ...u16(stock ? '' : R.issue, 60)];
+    } else {
+      body = [R.ver, ...ab, p >> 8, p & 255, ...u16(R.team, 20), ...u16(R.members, 40), ...u16(R.issue, 60)];
+    }
   } else {
     const enc = new TextEncoder();
     const team = enc.encode(clip(R.team, 20)), mem = enc.encode(clip(R.members || '', 40));
@@ -741,6 +1110,11 @@ function parseCode(text) {
     let p = 1 + 9;
     if (ver >= 2) {
       const bits = (body[p] << 8) | body[p + 1]; p += 2;
+      let cardId = 0, issueId = 0, checks = 0;
+      if (ver >= 3) {
+        [cardId, issueId, checks] = [body[p], body[p + 1], body[p + 2]]; p += 3;
+        if (cardId > CARDS.length || issueId > ISSUES.length || checks > 15) return { error: '代碼內容不合法。' };
+      }
       const g = x => (x === 7 ? -1 : x);
       const rd = () => {                       // 讀一段 UTF-16 字串；長度不合就丟錯
         const L = body[p++] * 2; if (p + L > body.length) throw 0;
@@ -748,14 +1122,16 @@ function parseCode(text) {
         p += L; return s;
       };
       try {
-        const team = rd(), members = rd(), issue = rd();
-        return { R: { team, members, issue, dom: g(bits >> 6 & 7), sup: g(bits >> 3 & 7), src: g(bits & 7), answers, ver } };
+        const team = rd(), members = rd();
+        let issue = rd();
+        if (!issue && issueId > 0) issue = ISSUES[issueId - 1].text;
+        return { R: { team, members, issue, dom: g(bits >> 6 & 7), sup: g(bits >> 3 & 7), src: g(bits & 7), cardId, issueId, checks, answers, ver } };
       } catch (e) { continue; }
     }
     const dec = new TextDecoder();
     const tl = body[p++], team = dec.decode(body.slice(p, p + tl)); p += tl;
     const ml = body[p++], members = dec.decode(body.slice(p, p + ml));
-    return { R: { team, members, issue: '', dom: -1, sup: -1, src: -1, answers, ver } };
+    return { R: { team, members, issue: '', dom: -1, sup: -1, src: -1, cardId: 0, issueId: 0, checks: 0, answers, ver } };
   }
   return { error: '代碼檢查沒通過，可能漏字、多字或被改過。請學生重新複製。' };
 }
@@ -797,21 +1173,13 @@ function backToQuiz() { S.pos = 0; show('s-quiz'); renderQ(); }
 function restart() {
   if (!confirm('確定重新開始？目前的答案會清除。')) return;
   clearSaved();
-  S = { team: '', members: '', issue: '', dom: -1, sup: -1, src: -1, obs: '', answers: {}, pos: 0 };
-  P = { dom: -1, sup: -1, src: -1 };
-  initProblem();
-  $('team').value = ''; $('members').value = ''; $('p-issue').value = ''; $('p-obs').value = '';
+  S = EMPTY();
+  P = { ddom: -1 };
+  $('team').value = ''; $('members').value = ''; $('p-issue').value = '';
   $('resume').style.display = 'none';
   show('s-start');
 }
 $('team').addEventListener('input', e => { e.target.classList.remove('err'); $('team-msg').textContent = ''; });
-function initProblem() {
-  renderPicks('p-dom', DOMS, 'dom'); renderPicks('p-sup', SUPS, 'sup'); renderPicks('p-src', SRCS, 'src');
-  $('p-dom-eg').textContent = '選一個最接近的。';
-  $('p-pattern').textContent = '句型參考：在【領域】，【主要支持對象】因為______，遇到______。';
-  pCount();
-}
-initProblem();
 init();
 
 // 掃描 QR code 進來：網址 #後面是代碼，直接進老師查看模式（不寫入本機存檔）
