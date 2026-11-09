@@ -229,6 +229,17 @@ textarea { min-height: 84px; resize: vertical; }
 
 button[hidden] { display: none !important; }
 .stage.instant .dcard-inner, .stage.instant .face-inner { transition: none !important; }
+.hero { border-radius: 16px; color: #fff; padding: 16px; margin-bottom: 12px; display: flex; gap: 14px; align-items: center; }
+.hero .pic { flex: none; width: 96px; height: 96px; border-radius: 50%; object-fit: cover; object-position: 50% 30%; border: 3px solid rgba(255,255,255,.85); background: #fff; }
+.hero .k { font-size: 12px; opacity: .85; letter-spacing: .08em; }
+.hero .tn { font-size: 24px; font-weight: 800; line-height: 1.25; word-break: break-word; }
+.hero .sm { font-size: 13px; opacity: .92; margin-top: 2px; }
+.hero .top1 { margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.95); color: #1f2d3a; border-radius: 999px; padding: 4px 12px 4px 6px; font-weight: 700; font-size: 14px; }
+.hero .top1 img { width: 28px; height: 28px; }
+.imgmodal { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 50; overflow: auto; padding: 16px; display: none; }
+.imgmodal.on { display: block; }
+.imgmodal .box { max-width: 480px; margin: 0 auto; background: #fff; border-radius: 14px; padding: 14px; }
+.imgmodal img { width: 100%; height: auto; display: block; border-radius: 8px; }
 @media print {
   .btn, .navrow, .toast, .noprint { display: none !important; }
   body { background: #fff; }
@@ -325,7 +336,8 @@ button[hidden] { display: none !important; }
 <!-- 1c. 選社會問題＋四個社會性 -->
 <div id="s-problem" class="screen"><div class="wrap">
   <h1 style="font-size:22px">你們要處理的社會問題</h1>
-  <div class="card mycard" id="p-card"></div>
+  <div id="p-stage-slot"></div>
+  <p class="hint" style="text-align:center;margin:0 0 14px">點卡片可以翻面，重看他的故事。</p>
 
   <div class="card">
     <h2>1. 選一個社會問題</h2>
@@ -376,14 +388,16 @@ button[hidden] { display: none !important; }
 </div></div>
 
 <!-- 3. 結果 -->
+<div class="imgmodal" id="imgmodal"><div class="box"><p style="margin:0 0 10px;font-size:15px"><b>成果卡已產生。</b>手機請<b>長按圖片 → 儲存到相簿</b>；電腦可按下載。</p><img id="cardimg" alt="成果卡"><a class="btn btn-primary" id="cardlink" download="design-compass.png" style="margin-top:10px;display:block;text-align:center;text-decoration:none">下載 PNG</a><button class="btn btn-quiet" style="margin-top:8px" onclick="$('imgmodal').classList.remove('on')">關閉</button></div></div>
 <div id="s-result" class="screen"><div class="wrap">
+  <div class="hero" id="r-hero"></div>
   <div class="rhead">
     <h1>你們的設計方向分析</h1>
     <div class="rmeta" id="r-meta"></div>
   </div>
   <div class="card codecard">
     <h2>繳交用 QR code　<span style="font-weight:400;font-size:13px;color:var(--muted)" id="r-codever"></span></h2>
-    <p class="sub" id="r-codesub">請截圖這一區（QR code 和下面的代碼都要拍進去）交給老師。老師用手機相機掃描就能看到你們的結果。</p>
+    <p class="sub" id="r-codesub">請按最下方「下載成果卡圖片」，把圖片上傳到學校系統（或截圖這一區）。老師用手機相機掃 QR code 就能看到你們的結果。</p>
     <div class="qrwrap" id="r-qr"></div>
     <p class="sub" style="margin-bottom:6px">掃不了的備援代碼：</p>
     <div class="codebox" id="r-code"></div>
@@ -401,7 +415,8 @@ button[hidden] { display: none !important; }
   <div class="card"><h2>小組討論</h2><div id="r-disc"></div></div>
 
   <div class="noprint">
-    <button class="btn btn-primary" onclick="copyResult()">複製結果文字</button>
+    <button class="btn btn-primary" onclick="makeCardImage()">下載成果卡圖片（繳交用）</button>
+    <button class="btn btn-ghost" onclick="copyResult()">複製結果文字</button>
     <button class="btn btn-ghost" onclick="shareResult()">分享</button>
     <button class="btn btn-ghost" onclick="window.print()">列印／存成 PDF</button>
     <button class="btn btn-quiet" id="btn-back" onclick="backToQuiz()">回去修改答案</button>
@@ -618,7 +633,7 @@ let busy = false, revealed = false, showingStory = false, pendingR = null, timer
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
 function clearTimers() { timers.forEach(clearTimeout); timers = []; }
-function rollRarity() { const n = Math.random(); return n < 0.40 ? 'R' : n < 0.75 ? 'SR' : 'SSR'; }
+function rollRarity() { const n = Math.random(); return n < 0.30 ? 'R' : n < 0.70 ? 'SR' : 'SSR'; }
 
 function renderDomPicks() {
   $('d-dom').innerHTML = DOMS.map((t, i) =>
@@ -661,6 +676,7 @@ function updateDrawUI() {
   $('d-next').style.display = used > 0 && !busy ? '' : 'none';
 }
 function enterDraw() {
+  $('s-draw').querySelector('.wrap').insertBefore($('stage'), $('d-status'));   // 若卡片在問題頁，搬回來
   resetStage();
   if (S.draws.length) {
     const last = S.draws[S.draws.length - 1], c = CARDS[last.id - 1];
@@ -736,10 +752,10 @@ $('dcard').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key ===
 function toProblem() { if (S.cardId > 0 && !busy) enterProblem(); }
 function backToDraw() { enterDraw(); }
 function enterProblem() {
-  const c = CARDS[S.cardId - 1];
-  $('p-card').innerHTML =
-    `<b>你們抽到：${esc(c.name)}，${c.age} 歲｜${esc(c.role)}</b>` +
-    `<details><summary>再看一次這張卡的故事</summary><div class="sb"><p><b>故事</b>${esc(c.story)}</p><p><b>困擾</b>${esc(c.trouble)}</p><p><b>線索</b></p><ol>${c.clues.map(x => '<li>' + esc(x) + '</li>').join('')}</ol></div></details>`;
+  // 同一張卡直接搬過來（不重畫），翻面邏輯沿用
+  const st = $('stage'); st.classList.add('instant');
+  $('p-stage-slot').appendChild(st);
+  requestAnimationFrame(() => requestAnimationFrame(() => st.classList.remove('instant')));
   renderIssueList();
   $('p-issue').value = S.issue;
   pCount();
@@ -921,7 +937,14 @@ function showResults(R, viewOnly) {
     (R.issue ? '<br>問題：' + esc(R.issue) : '') +
     (tagLine(R) ? '<br>' + esc(tagLine(R)) : '') +
     (cardLine(R) ? '<br>' + esc(cardLine(R)) : '') +
-    (checksLine(R) ? '<br>' + esc(checksLine(R)) : '');
+    (checksLine(R) ? '<br>' + esc(checksLine(R)) : '') +
+    '<br>' + esc('評分第一名：' + DIRS[rk[0].i].name + '、第二名：' + DIRS[rk[1].i].name + '、第三名：' + DIRS[rk[2].i].name);
+  const d1 = DIRS[rk[0].i], c1 = R.cardId > 0 && CARDS[R.cardId - 1];
+  $('r-hero').style.background = 'linear-gradient(135deg,' + d1.color + ',#1f2d3a)';
+  $('r-hero').innerHTML = (c1 ? '<img class="pic" src="assets/cards/char-' + pad(c1.id) + '.webp" alt="">' : '') +
+    '<div><div class="k">設計方向羅盤' + (c1 ? '・' + esc(c1.name) + '的情境' : '') + '</div><div class="tn">' + esc(R.team || '（未填組別）') + '</div>' +
+    (R.members ? '<div class="sm">' + esc(R.members) + '</div>' : '') +
+    '<div class="top1"><img src="' + d1.icon + '" alt="">第一名　' + d1.name + ' ' + rk[0].s + '%</div></div>';
   const code = makeCode(R);
   $('r-code').textContent = code;
   $('r-codever').textContent = '問卷版本 ' + R.ver;
@@ -1145,6 +1168,90 @@ function leaveView() {
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
   show('s-start');
 }
+// ───────── 成果卡圖片（純 canvas，不用函式庫）─────────
+function loadImg(src) { return new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; }); }
+function wrapLines(ctx, text, w) {
+  const out = []; let line = '';
+  for (const ch of text) { if (ctx.measureText(line + ch).width > w && line) { out.push(line); line = ch; } else line += ch; }
+  if (line) out.push(line); return out;
+}
+function rrect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+async function makeCardImage() {
+  const R = CUR, W = 1080, F = '"PingFang TC","Noto Sans TC","微軟正黑體",sans-serif';
+  const sc = scores(R.answers, R.ver), rv = rel(sc);
+  const rk = sc.map((s, i) => ({ i, s })).sort((a, b) => b.s - a.s).slice(0, 3);
+  const c = R.cardId > 0 && CARDS[R.cardId - 1], d1 = DIRS[rk[0].i];
+  const [pic, ...icons] = await Promise.all([c ? loadImg('assets/cards/char-' + pad(c.id) + '.webp') : null, ...rk.map(x => loadImg(DIRS[x.i].icon))]);
+  const cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+  const sentence = (R.issue || '').trim();
+  ctx.font = '36px ' + F; const iLines = sentence ? wrapLines(ctx, '「' + sentence + '」', W - 160) : [];
+  ctx.font = '26px ' + F;
+  const meta = [cardLine(R), tagLine(R), checksLine(R)].filter(Boolean).flatMap(m => wrapLines(ctx, m, W - 120));
+  const H = 400 + (iLines.length ? 60 + iLines.length * 54 : 0) + meta.length * 38 + 40 + 3 * 150 + 20 + 400 + 90;
+  cv.width = W; cv.height = H;
+  ctx.fillStyle = '#f4f1ea'; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createLinearGradient(0, 0, W, 360); g.addColorStop(0, d1.color); g.addColorStop(1, '#1f2d3a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, 360);
+  ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = '28px ' + F; ctx.fillText('設計方向羅盤' + (c ? '・' + c.name + '的情境' : ''), 60, 70);
+  let tx = 60;
+  if (pic) {
+    ctx.save(); ctx.beginPath(); ctx.arc(170, 210, 110, 0, 7); ctx.clip();
+    const side = Math.min(pic.width, pic.height);
+    ctx.drawImage(pic, (pic.width - side) / 2, pic.height * 0.04, side, side, 60, 100, 220, 220); ctx.restore();
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.arc(170, 210, 110, 0, 7); ctx.stroke(); tx = 320;
+  }
+  ctx.fillStyle = '#fff'; let fs = 68; ctx.font = '800 ' + fs + 'px ' + F;
+  const team = R.team || '（未填組別）';
+  while (ctx.measureText(team).width > W - tx - 60 && fs > 36) { fs -= 4; ctx.font = '800 ' + fs + 'px ' + F; }
+  ctx.fillText(team, tx, 200);
+  ctx.font = '30px ' + F; ctx.fillStyle = 'rgba(255,255,255,.92)';
+  if (R.members) wrapLines(ctx, R.members, W - tx - 60).slice(0, 2).forEach((l, i) => ctx.fillText(l, tx, 250 + i * 40));
+  rrect(ctx, tx, 290, 460, 52, 26); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.fillStyle = '#1f2d3a'; ctx.font = '700 28px ' + F; ctx.fillText('第一名　' + d1.name + ' ' + rk[0].s + '%', tx + 24, 326);
+  let y = 400;
+  if (iLines.length) {
+    ctx.fillStyle = '#5f6b76'; ctx.font = '26px ' + F; ctx.fillText('我們關注的問題', 60, y); y += 54;
+    ctx.fillStyle = '#1f2d3a'; ctx.font = '36px ' + F; iLines.forEach(l => { ctx.fillText(l, 80, y); y += 54; }); y += 6;
+  }
+  ctx.fillStyle = '#5f6b76'; ctx.font = '26px ' + F; meta.forEach(l => { ctx.fillText(l, 60, y); y += 38; });
+  y += 20;
+  rk.forEach((x, r) => {
+    const d = DIRS[x.i]; rrect(ctx, 40, y, W - 80, 130, 18); ctx.fillStyle = '#fff'; ctx.fill(); ctx.fillStyle = d.color; ctx.fillRect(40, y + 12, 8, 106);
+    if (icons[r]) ctx.drawImage(icons[r], 70, y + 21, 88, 88);
+    ctx.fillStyle = d.color; ctx.font = '700 24px ' + F; ctx.fillText('第 ' + (r + 1) + ' 名', 180, y + 42);
+    ctx.fillStyle = '#1f2d3a'; ctx.font = '700 38px ' + F; ctx.fillText(d.name, 180, y + 88);
+    ctx.font = '700 44px ' + F; ctx.textAlign = 'right'; ctx.fillStyle = d.color; ctx.fillText(x.s + '%', W - 70, y + 82); ctx.textAlign = 'left';
+    rrect(ctx, 180, y + 102, 560, 10, 5); ctx.fillStyle = '#e6e1d3'; ctx.fill();
+    rrect(ctx, 180, y + 102, Math.max(20, 560 * rv[x.i] / 100), 10, 5); ctx.fillStyle = d.color; ctx.fill();
+    y += 150;
+  });
+  y += 20;
+  const code = makeCode(R);
+  rrect(ctx, 40, y, W - 80, 400, 18); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#1d6f8f'; ctx.stroke();
+  try {
+    const qr = qrcode(0, 'L'), k = code.indexOf('-') + 1;
+    qr.addData(BASE_URL + '#' + code.slice(0, k) + code.slice(k).replace(/-/g, '')); qr.make();
+    const n = qr.getModuleCount(), q = 4, u = Math.floor(340 / (n + 2 * q));
+    ctx.fillStyle = '#fff'; ctx.fillRect(70, y + 30, u * (n + 2 * q), u * (n + 2 * q)); ctx.fillStyle = '#000';
+    for (let r = 0; r < n; r++) for (let cc = 0; cc < n; cc++) if (qr.isDark(r, cc)) ctx.fillRect(70 + (cc + q) * u, y + 30 + (r + q) * u, u, u);
+  } catch (e) {}
+  ctx.fillStyle = '#1d6f8f'; ctx.font = '700 32px ' + F; ctx.fillText('繳交用 QR code', 440, y + 80);
+  ctx.fillStyle = '#5f6b76'; ctx.font = '24px ' + F; ctx.fillText('老師用手機相機掃描即可看到結果', 440, y + 120);
+  ctx.fillText('掃不了時的備援代碼：', 440, y + 170);
+  ctx.fillStyle = '#1f2d3a'; ctx.font = '700 26px "Courier New",monospace';
+  const cl = []; for (let i = 0; i < code.length; i += 22) cl.push(code.slice(i, i + 22));
+  cl.slice(0, 5).forEach((l, i) => ctx.fillText(l, 440, y + 210 + i * 36));
+  ctx.fillStyle = '#5f6b76'; ctx.font = '22px ' + F; ctx.fillText('問卷版本 ' + R.ver, 440, y + 380);
+  ctx.textAlign = 'center'; ctx.fillText('結果是討論的起點，不是診斷', W / 2, H - 30);
+  try {
+    cv.toBlob(b => {
+      if (!b) { toast('產生圖片失敗，請改用截圖'); return; }
+      const url = URL.createObjectURL(b);
+      $('cardimg').src = url; $('cardlink').href = url; $('imgmodal').classList.add('on');
+    }, 'image/png');
+  } catch (e) { toast('產生圖片失敗，請改用截圖'); }
+}
+
 function copyCode() {
   const t = $('r-code').textContent;
   if (navigator.clipboard && navigator.clipboard.writeText) {
