@@ -173,6 +173,7 @@ textarea { min-height: 84px; resize: vertical; }
     <div class="field">
       <label for="team">組別 *</label>
       <input id="team" type="text" autocomplete="off" maxlength="20" placeholder="例：新撰組">
+      <p class="msg" id="team-msg" style="min-height:0"></p>
     </div>
     <div class="field">
       <label for="members">成員</label>
@@ -412,7 +413,7 @@ function resumeQuiz() {
 
 function toProblem() {
   const team = $('team').value.trim();
-  if (!team) { $('team').classList.add('err'); $('team').focus(); return; }
+  if (!team) { $('team').classList.add('err'); $('team-msg').textContent = '請先填組別（寫組名就可以）。'; $('team').focus(); return; }
   show('s-problem');
 }
 
@@ -803,7 +804,7 @@ function restart() {
   $('resume').style.display = 'none';
   show('s-start');
 }
-$('team').addEventListener('input', e => e.target.classList.remove('err'));
+$('team').addEventListener('input', e => { e.target.classList.remove('err'); $('team-msg').textContent = ''; });
 function initProblem() {
   renderPicks('p-dom', DOMS, 'dom'); renderPicks('p-sup', SUPS, 'sup'); renderPicks('p-src', SRCS, 'src');
   $('p-dom-eg').textContent = '選一個最接近的。';
