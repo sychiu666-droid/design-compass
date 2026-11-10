@@ -381,7 +381,7 @@ button[hidden] { display: none !important; }
   </div>
 
   <div class="card">
-    <h2>3. 這個問題算「社會問題」嗎？</h2>
+    <h2>3. 社會問題屬性自評：這個問題算「社會問題」嗎？</h2>
     <p class="hint" style="margin:-6px 0 4px">對照你們寫的那一句話，符合的打勾。提醒用，不打勾也能繼續。</p>
     <label class="chk"><input type="checkbox" id="c0" onchange="onCheck()"><span><b>公共性</b><small>夠普遍，是「一群人的問題」，不只發生在一個人身上。</small></span></label>
     <label class="chk"><input type="checkbox" id="c1" onchange="onCheck()"><span><b>結構性</b><small>背後是規定、制度，或難以改變的身分條件，不只是個人的個性或選擇。</small></span></label>
@@ -1043,7 +1043,7 @@ function cardLine(R) {
 function checksLine(R) {
   if (R.ver < 3) return '';
   const on = CHECKS.filter((_, i) => R.checks & (1 << i));
-  return `社會性自評：${on.length ? on.join('、') : '都沒打勾'}（${on.length}／4）`;
+  return `社會問題屬性自評：${on.length ? on.join('、') : '都沒打勾'}（${on.length}／4）`;
 }
 function tagLine(R) {
   const t = [];
